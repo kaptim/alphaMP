@@ -90,12 +90,13 @@ class Mpnn(torch.nn.Module):
         batch = self.feature_encoder(batch)
 
         for i, block in enumerate(self.blocks):
+            # training: some old values, some new values
+            # evaluation: (1-alpha)*old_value + alpha*new_value
             mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
             # block() calls forward (after registering hooks), modifies batch in place
             # i.e., you should read this as "keep some values of the original batch,
             # update batch (by passing it through the layer) and keep some of the new values"
             batch.x = (1 - mask) * batch.x + mask * block(batch).x
-            # TODO: inference
 
         h = batch.x
         if self.node_out is not None:
@@ -112,7 +113,9 @@ class Mpnn(torch.nn.Module):
         return self.parameters()
 
     def get_mask(self, num_nodes):
-        """Returns a probabilistic mask tensor (num_nodes, 1)
+        """Training: returns a probabilistic mask tensor of size (num_nodes, 1)
+            where each value is 1 with probability self.alpha, 0 otherwise
+           Evaluation: returns a mask tensor of size (num_nodes, 1) containing alpha
 
         Args:
             num_nodes (int): Number of nodes in the batch
@@ -122,4 +125,7 @@ class Mpnn(torch.nn.Module):
             torch.tensor: (num_nodes, 1) mask to be multiplied with the updated batch
         """
         alphas = torch.full((num_nodes, 1), fill_value=self.alpha)
-        return torch.bernoulli(alphas).int()
+        if self.training:
+            return torch.bernoulli(alphas).int()
+        else:
+            return alphas
