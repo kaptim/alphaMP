@@ -1,0 +1,7 @@
+# @package _global_
+model:
+  name: mpnn
+  num_layers: 3
+  hidden_size: 80
+  local_mp_type: gin
+  global_mp_type: None
