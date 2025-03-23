@@ -51,9 +51,7 @@ class Mpnn(torch.nn.Module):
                         or (global_mp_type is None)
                         else global_mp_type
                     ),
-                    num_heads=kwargs.get("num_heads", 4),
                     dropout=dropout,
-                    attn_dropout=kwargs.get("attn_dropout", 0.0),
                     vn_norm_first=kwargs.get("vn_norm_first", True),
                     vn_norm_type=kwargs.get("vn_norm_type", "batchnorm"),
                     vn_pooling=kwargs.get("vn_pooling", "sum"),
@@ -97,6 +95,7 @@ class Mpnn(torch.nn.Module):
             # i.e., you should read this as "keep some values of the original batch,
             # update batch (by passing it through the layer) and keep some of the new values"
             batch.x = (1 - mask) * batch.x + mask * block(batch).x
+            # TODO: inference
 
         h = batch.x
         if self.node_out is not None:

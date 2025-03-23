@@ -40,7 +40,6 @@ model:
   local_mp_type: gin
   global_mp_type: None
   dropout: 0.0
-  attn_dropout: 0.5
   node_out: true
   global_pool: mean
   head: mlp
