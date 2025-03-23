@@ -92,14 +92,10 @@ class Mpnn(torch.nn.Module):
         batch = self.feature_encoder(batch)
 
         for i, block in enumerate(self.blocks):
-            # TODO: alpha
-            # block() basically calls forward (after registering hooks)
-            # first idea: keep old batch, compute mask, only change
-            # subset of the batch
-            # !!! different number of features per node => watch out
-            # (layers might rely on this)
-            # only need a mask for the rows
             mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
+            # block() calls forward (after registering hooks), modifies batch in place
+            # i.e., you should read this as "keep some values of the original batch,
+            # update batch (by passing it through the layer) and keep some of the new values"
             batch.x = (1 - mask) * batch.x + mask * block(batch).x
 
         h = batch.x
