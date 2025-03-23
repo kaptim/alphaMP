@@ -19,10 +19,12 @@ class Mpnn(torch.nn.Module):
         global_pool=None,
         head="mlp",
         pad_idx=-1,
+        alpha=0.5,
         **kwargs,
     ):
         super().__init__()
         self.pad_idx = pad_idx
+        self.alpha = alpha
 
         self.feature_encoder = FeatureEncoder(
             hidden_size=hidden_size,
@@ -96,10 +98,9 @@ class Mpnn(torch.nn.Module):
             # subset of the batch
             # !!! different number of features per node => watch out
             # (layers might rely on this)
-            full_batch = batch.clone()
-            full_batch = block(full_batch)
             # only need a mask for the rows
-            print("hello")
+            mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
+            batch.x = (1 - mask) * batch.x + mask * block(batch).x
 
         h = batch.x
         if self.node_out is not None:
@@ -115,6 +116,15 @@ class Mpnn(torch.nn.Module):
     def get_params(self):
         return self.parameters()
 
-    def get_mask(self, num_nodes, alpha):
-        alphas = torch.full((num_nodes,), fill_value=alpha)
-        mask = torch.bernoulli(alphas).nonzero(as_tuple=True)
+    def get_mask(self, num_nodes):
+        """Returns a probabilistic mask tensor (num_nodes, 1)
+
+        Args:
+            num_nodes (int): Number of nodes in the batch
+            alpha (float, optional): Probability of a node update. Defaults to 0.5.
+
+        Returns:
+            torch.tensor: (num_nodes, 1) mask to be multiplied with the updated batch
+        """
+        alphas = torch.full((num_nodes, 1), fill_value=self.alpha)
+        return torch.bernoulli(alphas).int()

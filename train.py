@@ -10,10 +10,10 @@ from omegaconf import OmegaConf
 import pytorch_lightning as pl
 from timeit import default_timer as timer
 
-from neuralwalker.models import Mpnn_pl
-from neuralwalker.data import get_dataset
-from neuralwalker.data.transforms import Preprocessor, feature_normalization
-from neuralwalker.utils import update_cfg
+from alphagnn.models import Mpnn_pl
+from alphagnn.data import get_dataset
+from alphagnn.data.transforms import Preprocessor, feature_normalization
+from alphagnn.utils import update_cfg
 
 torch.backends.cuda.matmul.allow_tf32 = True  # Default False in PyTorch 1.12+
 torch.backends.cudnn.allow_tf32 = True  # Default True

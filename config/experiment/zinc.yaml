@@ -13,3 +13,4 @@ model:
   node_embed: true
   edge_embed: true
   global_pool: sum
+  alpha: 0.4
