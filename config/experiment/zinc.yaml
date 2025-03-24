@@ -14,3 +14,4 @@ model:
   edge_embed: true
   global_pool: sum
   alpha: 0.4
+  alpha_eval_flag: a

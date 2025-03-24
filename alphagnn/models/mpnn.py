@@ -20,11 +20,13 @@ class Mpnn(torch.nn.Module):
         head="mlp",
         pad_idx=-1,
         alpha=0.5,
+        alpha_eval_flag="a",
         **kwargs,
     ):
         super().__init__()
         self.pad_idx = pad_idx
         self.alpha = alpha
+        self.alpha_eval_flag = alpha_eval_flag
 
         self.feature_encoder = FeatureEncoder(
             hidden_size=hidden_size,
@@ -91,11 +93,11 @@ class Mpnn(torch.nn.Module):
 
         for i, block in enumerate(self.blocks):
             # training: some old values, some new values
-            # evaluation: (1-alpha)*old_value + alpha*new_value
+            # evaluation: depends on self.alpha_evaluation_flag
             mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
             # block() calls forward (after registering hooks), modifies batch in place
             # i.e., you should read this as "keep some values of the original batch,
-            # update batch (by passing it through the layer) and keep some of the new values"
+            # update batch (by passing it through the layer) and keep some (mask) of the new values"
             batch.x = (1 - mask) * batch.x + mask * block(batch).x
 
         h = batch.x
@@ -128,4 +130,13 @@ class Mpnn(torch.nn.Module):
         if self.training:
             return torch.bernoulli(alphas).int()
         else:
-            return alphas
+            if self.alpha_eval_flag == "a":
+                return alphas
+            elif self.alpha_eval_flag == "p":
+                # same procedure for training and inference
+                return torch.bernoulli(alphas).int()
+            elif self.alpha_eval_flag == "n":
+                # no mask during inference
+                return torch.full((num_nodes, 1), fill_value=1)
+            else:
+                raise RuntimeError(f"Unexpected alpha flag: {self.alpha_eval_flag}")

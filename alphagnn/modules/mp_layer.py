@@ -40,7 +40,9 @@ class MessagePassingLayer(nn.Module):
             if self.global_model_type == "vn":
                 h = self.global_mp(h, batch)
             else:
-                raise RuntimeError(f"Unexpected {self.global_model_type}")
+                raise RuntimeError(
+                    f"Unexpected global model type: {self.global_model_type}"
+                )
 
         batch.x = h
         batch.edge_attr = edge_attr
