@@ -48,7 +48,10 @@ def main(cfg):
         strategy="auto",
         enable_checkpointing=False,
         default_root_dir=cfg.logs.path,
-        logger=[pl.loggers.CSVLogger(cfg.logs.path, name="csv_logs")],
+        logger=[
+            pl.loggers.CSVLogger(cfg.logs.path, name="csv_logs"),
+            pl.loggers.WandbLogger(name=cfg.logs.path, project="async_gnn"),
+        ],
         callbacks=[
             pl.callbacks.LearningRateMonitor(logging_interval="epoch"),
         ],

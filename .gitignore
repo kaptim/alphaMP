@@ -1,6 +1,7 @@
 ### Custom Directories ###
 tests
 logs*
+wandb*
 datasets
 test
 cache
