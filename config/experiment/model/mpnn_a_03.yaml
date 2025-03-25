@@ -5,5 +5,5 @@ model:
   hidden_size: 80
   local_mp_type: gin
   global_mp_type: None
-  alpha: 1.0
+  alpha: 0.3
   alpha_eval_flag: a

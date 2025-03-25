@@ -41,7 +41,6 @@ class Mpnn(torch.nn.Module):
             if kwargs.get("global_mp_type") == "None"
             else kwargs.get("global_mp_type", "vn")
         )
-        print("hello")
         self.blocks = torch.nn.ModuleList(
             [
                 MpnnLayer(
