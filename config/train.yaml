@@ -47,6 +47,10 @@ model:
 logs:
   prefix: logs/${dataset.name}/${model.name}/${seed}
   path: ${logs.prefix}/runs/${now:%Y-%m-%d}_${now:%H-%M-%S}
+  wandb_name:
+    "${model.name}/${dataset.name}/${model.alpha}\
+    /${model.alpha_eval_flag}/${model.num_layers}/\
+    ${now:%Y-%m-%d}_${now:%H-%M-%S}"
 
 # output directory, generated dynamically on each run
 hydra:

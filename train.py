@@ -35,7 +35,7 @@ def main(cfg):
     cfg = update_cfg(cfg, dataset)
 
     model = Mpnn_pl(cfg)
-
+    print(cfg.logs.wandb_name)
     trainer = pl.Trainer(
         limit_train_batches=5 if cfg.debug else None,
         limit_val_batches=5 if cfg.debug else None,
@@ -53,7 +53,7 @@ def main(cfg):
             if cfg.debug
             else [
                 pl.loggers.CSVLogger(cfg.logs.path, name="csv_logs"),
-                pl.loggers.WandbLogger(name=cfg.logs.path, project="async_gnn"),
+                pl.loggers.WandbLogger(name=cfg.logs.wandb_name, project="async_gnn"),
             ]
         ),
         callbacks=[

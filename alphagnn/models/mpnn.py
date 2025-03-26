@@ -116,7 +116,10 @@ class Mpnn(torch.nn.Module):
     def get_mask(self, num_nodes):
         """Training: returns a probabilistic mask tensor of size (num_nodes, 1)
             where each value is 1 with probability self.alpha, 0 otherwise
-           Evaluation: returns a mask tensor of size (num_nodes, 1) containing alpha
+           Evaluation: depends on self.alpha_eval_flag
+            'a': mask tensor of size (num_nodes, 1) containing alpha
+            'p': probabilistic mask tensor of size (num_nodes, 1) (same as for training)
+            'n': no mask during inference
 
         Args:
             num_nodes (int): Number of nodes in the batch
