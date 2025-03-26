@@ -35,7 +35,7 @@ def main(cfg):
     cfg = update_cfg(cfg, dataset)
 
     model = Mpnn_pl(cfg)
-    print(cfg.logs.wandb_name)
+
     trainer = pl.Trainer(
         limit_train_batches=5 if cfg.debug else None,
         limit_val_batches=5 if cfg.debug else None,
