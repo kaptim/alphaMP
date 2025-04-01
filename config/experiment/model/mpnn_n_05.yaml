@@ -7,3 +7,4 @@ model:
   global_mp_type: None
   alpha: 0.5
   alpha_eval_flag: n
+  recurrent: True

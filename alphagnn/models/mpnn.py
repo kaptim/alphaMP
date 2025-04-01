@@ -21,12 +21,16 @@ class Mpnn(torch.nn.Module):
         pad_idx=-1,
         alpha=0.5,
         alpha_eval_flag="a",
+        recurrent=False,
         **kwargs,
     ):
         super().__init__()
         self.pad_idx = pad_idx
         self.alpha = alpha
         self.alpha_eval_flag = alpha_eval_flag
+        # only use one layer multiple times
+        self.recurrent = recurrent
+        self.num_layers = num_layers
 
         self.feature_encoder = FeatureEncoder(
             hidden_size=hidden_size,
@@ -41,24 +45,39 @@ class Mpnn(torch.nn.Module):
             if kwargs.get("global_mp_type") == "None"
             else kwargs.get("global_mp_type", "vn")
         )
-        self.blocks = torch.nn.ModuleList(
-            [
-                MpnnLayer(
-                    hidden_size=hidden_size,
-                    local_gnn_type=kwargs.get("local_mp_type", "gin"),
-                    global_model_type=(
-                        None
-                        if (global_mp_type == "vn" and i == num_layers - 1)
-                        or (global_mp_type is None)
-                        else global_mp_type
-                    ),
-                    dropout=dropout,
-                    vn_norm_first=kwargs.get("vn_norm_first", True),
-                    vn_norm_type=kwargs.get("vn_norm_type", "batchnorm"),
-                    vn_pooling=kwargs.get("vn_pooling", "sum"),
-                )
-                for i in range(num_layers)
-            ]
+        # self.recurrent == True: one layer
+        # self.recurrent == False: num_layers different layers
+        self.blocks = (
+            torch.nn.ModuleList(
+                [
+                    MpnnLayer(
+                        hidden_size=hidden_size,
+                        local_gnn_type=kwargs.get("local_mp_type", "gin"),
+                        global_model_type=(
+                            None
+                            if (global_mp_type == "vn" and i == num_layers - 1)
+                            or (global_mp_type is None)
+                            else global_mp_type
+                        ),
+                        dropout=dropout,
+                        vn_norm_first=kwargs.get("vn_norm_first", True),
+                        vn_norm_type=kwargs.get("vn_norm_type", "batchnorm"),
+                        vn_pooling=kwargs.get("vn_pooling", "sum"),
+                    )
+                    for i in range(num_layers)
+                ]
+            )
+            if not self.recurrent
+            else MpnnLayer(
+                hidden_size=hidden_size,
+                local_gnn_type=kwargs.get("local_mp_type", "gin"),
+                # TODO: not sure how to integrate virtual node in this case
+                global_model_type=None,
+                dropout=dropout,
+                vn_norm_first=kwargs.get("vn_norm_first", True),
+                vn_norm_type=kwargs.get("vn_norm_type", "batchnorm"),
+                vn_pooling=kwargs.get("vn_pooling", "sum"),
+            )
         )
 
         self.node_out = None
@@ -90,14 +109,21 @@ class Mpnn(torch.nn.Module):
 
         batch = self.feature_encoder(batch)
 
-        for i, block in enumerate(self.blocks):
-            # training: some old values, some new values
-            # evaluation: depends on self.alpha_evaluation_flag
-            mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
-            # block() calls forward (after registering hooks), modifies batch in place
-            # i.e., you should read this as "keep some values of the original batch,
-            # update batch (by passing it through the layer) and keep some (mask) of the new values"
-            batch.x = (1 - mask) * batch.x + mask * block(batch).x
+        if not self.recurrent:
+            for block in self.blocks:
+                # training: some old values, some new values
+                # evaluation: depends on self.alpha_evaluation_flag
+                mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
+                # block() calls forward (after registering hooks), modifies batch in place
+                # i.e., you should read this as "keep some values of the original batch,
+                # update batch (by passing it through the layer) and keep some (mask) of the new values"
+                batch.x = (1 - mask) * batch.x + mask * block(batch).x
+        else:
+            # apply one layer recurrently
+            for i in range(self.num_layers):
+                # same masking process as in the non-recurrent case
+                mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
+                batch.x = (1 - mask) * batch.x + mask * self.blocks(batch).x
 
         h = batch.x
         if self.node_out is not None:
