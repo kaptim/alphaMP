@@ -45,13 +45,14 @@ model:
   head: mlp
 
 logs:
+  csv_flag: False
   prefix: logs/${dataset.name}/${model.name}/${seed}
-  path: ${logs.prefix}/runs/${now:%y-%m-%d}_${now:%H-%M}
+  path: ${logs.prefix}/runs/${now:%Y-%m-%d}_${now:%H-%M-%S}
   wandb_name:
     "${model.name}/${dataset.name}/${model.alpha}\
     /${model.alpha_eval_flag}/${model.num_layers}/\
     r:${model.recurrent}/\
-    ${now:%y-%m-%d}_${now:%H-%M}"
+    ${now:%Y-%m-%d}_${now:%H-%M-%S}"
 
 # output directory, generated dynamically on each run
 hydra:
