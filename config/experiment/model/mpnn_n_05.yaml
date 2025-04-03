@@ -8,6 +8,4 @@ model:
   alpha: 0.5
   alpha_eval_flag: n
   recurrent: True
-
-training:
   lr: 0.004

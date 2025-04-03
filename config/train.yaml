@@ -52,7 +52,7 @@ logs:
   wandb_name:
     "${model.name}/${dataset.name}/${model.alpha}\
     /${model.alpha_eval_flag}/${model.num_layers}/\
-    r:${model.recurrent}/\
+    r:${model.recurrent}/lr:${training.lr}/\
     ${now:%Y-%m-%d}_${now:%H-%M-%S}"
 
 # output directory, generated dynamically on each run
