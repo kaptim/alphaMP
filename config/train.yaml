@@ -23,6 +23,7 @@ training:
   loss: ${dataset.loss}
   batch_size: 32
   epochs: 100
+  # this is changed in update_cfg
   iterations: null
   lr: 0.002
   lr_schedule: cosine
