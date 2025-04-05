@@ -6,6 +6,6 @@ model:
   local_mp_type: gin
   global_mp_type: None
   alpha: 0.95
-  alpha_eval_flag: a
+  alpha_eval_flag: n
   recurrent: False
   lr: 0.002
