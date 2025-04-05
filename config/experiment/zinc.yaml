@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - model: mpnn_a_05
+  - model: mpnn_n_08
 
 training:
   lr: ${model.lr}
