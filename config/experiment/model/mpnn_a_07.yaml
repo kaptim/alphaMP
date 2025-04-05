@@ -5,7 +5,7 @@ model:
   hidden_size: 80
   local_mp_type: gin
   global_mp_type: None
-  alpha: 0.5
-  alpha_eval_flag: n
-  recurrent: True
-  lr: 0.004
+  alpha: 0.7
+  alpha_eval_flag: a
+  recurrent: False
+  lr: 0.002
