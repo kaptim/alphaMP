@@ -3,9 +3,9 @@ model:
   name: mpnn
   num_layers: 6
   hidden_size: 80
-  local_mp_type: gin
+  local_mp_type: gcn
   global_mp_type: None
   alpha: 0.9
-  alpha_eval_flag: p
+  alpha_eval_flag: a
   recurrent: False
   lr: 0.002

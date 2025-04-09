@@ -1,11 +1,10 @@
 # @package _global_
 model:
   name: mpnn
-  num_layers: 6
+  num_layers: 3
   hidden_size: 80
-  local_mp_type: gin
+  local_mp_type: gcn
   global_mp_type: None
-  alpha: 0.99
-  alpha_eval_flag: n
+  alpha: 1.0
   recurrent: False
   lr: 0.002
