@@ -3,7 +3,7 @@ model:
   name: mpnn
   num_layers: 3
   hidden_size: 80
-  local_mp_type: gatedgcn
+  local_mp_type: gin
   global_mp_type: None
   alpha: 1.0
   recurrent: False

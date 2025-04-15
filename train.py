@@ -50,7 +50,7 @@ def main(cfg):
         default_root_dir=cfg.logs.path,
         logger=(
             # debugging: only csv logger
-            # csv_flag = False: only wandb
+            # csv_flag = False: only wandb (standard)
             [pl.loggers.CSVLogger(cfg.logs.path, name="csv_logs")]
             if cfg.debug
             else (
@@ -109,9 +109,10 @@ def main(cfg):
                 results[key] = np.mean(value)
                 results[f"{key}_std"] = np.std(value)
     results = pd.DataFrame.from_dict(results, orient="index")
-    os.makedirs(cfg.outdir, exist_ok=True)
-    results.to_csv(cfg.outdir + "/results.csv", header=["value"], index_label="name")
-    trainer.save_checkpoint(f"{cfg.outdir}/best_model.ckpt")
+    # TODO: potentially enable at the end
+    # os.makedirs(cfg.outdir, exist_ok=True)
+    # results.to_csv(cfg.outdir + "/results.csv", header=["value"], index_label="name")
+    # trainer.save_checkpoint(f"{cfg.outdir}/best_model.ckpt")
 
 
 if __name__ == "__main__":
