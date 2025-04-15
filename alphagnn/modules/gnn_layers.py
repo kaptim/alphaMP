@@ -6,12 +6,26 @@ from torch_geometric import utils
 from torch_scatter import scatter
 
 
+class GRUConv(gnn.MessagePassing):
+    def __init__(self, emb_dim, aggr):
+        super(GRUConv, self).__init__(aggr=aggr)
+        self.rnn = torch.nn.GRUCell(emb_dim, emb_dim)
+
+    def forward(self, x, edge_index):
+        out = self.rnn(self.propagate(edge_index, x=x), x)
+        return out
+
+
+# iterations == layers so need to reformulate a bit
+
+
 class GatedGCN(gnn.MessagePassing):
     """
-        GatedGCN layer
-        Residual Gated Graph ConvNets
-        https://arxiv.org/pdf/1711.07553.pdf
+    GatedGCN layer
+    Residual Gated Graph ConvNets
+    https://arxiv.org/pdf/1711.07553.pdf
     """
+
     def __init__(self, embed_dim, dropout=0.0, residual=True):
         super().__init__()
         self.A = nn.Linear(embed_dim, embed_dim)
@@ -48,9 +62,7 @@ class GatedGCN(gnn.MessagePassing):
         Dx = self.D(x)
         Ex = self.E(x)
 
-        x, e = self.propagate(edge_index,
-                              Bx=Bx, Dx=Dx, Ex=Ex, Ce=Ce,
-                              e=e, Ax=Ax)
+        x, e = self.propagate(edge_index, Bx=Bx, Dx=Dx, Ex=Ex, Ce=Ce, e=e, Ax=Ax)
 
         # x = self.bn_node_x(x)
         # e = self.bn_edge_e(e)
@@ -88,12 +100,10 @@ class GatedGCN(gnn.MessagePassing):
         dim_size = Bx.shape[0]  # or None ??   <--- Double check this
 
         sum_sigma_x = sigma_ij * Bx_j
-        numerator_eta_xj = scatter(sum_sigma_x, index, 0, None, dim_size,
-                                   reduce='sum')
+        numerator_eta_xj = scatter(sum_sigma_x, index, 0, None, dim_size, reduce="sum")
 
         sum_sigma = sigma_ij
-        denominator_eta_xj = scatter(sum_sigma, index, 0, None, dim_size,
-                                     reduce='sum')
+        denominator_eta_xj = scatter(sum_sigma, index, 0, None, dim_size, reduce="sum")
 
         out = numerator_eta_xj / (denominator_eta_xj + 1e-6)
         return out
@@ -111,7 +121,7 @@ class GatedGCN(gnn.MessagePassing):
 
 class GCNConv(gnn.MessagePassing):
     def __init__(self, embed_dim):
-        super(GCNConv, self).__init__(aggr='add')
+        super(GCNConv, self).__init__(aggr="add")
 
         self.linear = nn.Linear(embed_dim, embed_dim)
         self.root_emb = nn.Embedding(1, embed_dim)
@@ -125,15 +135,17 @@ class GCNConv(gnn.MessagePassing):
 
         row, col = edge_index
 
-        deg = utils.degree(row, x.size(0), dtype = x.dtype) + 1
+        deg = utils.degree(row, x.size(0), dtype=x.dtype) + 1
         deg_inv_sqrt = deg.pow(-0.5)
-        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+        deg_inv_sqrt[deg_inv_sqrt == float("inf")] = 0
 
         norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
 
-        return self.propagate(
-            edge_index, x=x, edge_attr = edge_embedding, norm=norm) + F.relu(
-            x + self.root_emb.weight) * 1. / deg.view(-1,1), edge_attr
+        return (
+            self.propagate(edge_index, x=x, edge_attr=edge_embedding, norm=norm)
+            + F.relu(x + self.root_emb.weight) * 1.0 / deg.view(-1, 1),
+            edge_attr,
+        )
 
     def message(self, x_j, edge_attr, norm):
         return norm.view(-1, 1) * F.relu(x_j + edge_attr)
