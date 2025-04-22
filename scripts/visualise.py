@@ -16,30 +16,31 @@ def get_data_csv_path():
     return os.path.abspath(csvs[0])
 
 
-def plot_test(
-    df: pd.DataFrame,
+def plot_score_boxplot(
+    raw_data: pd.DataFrame,
     num_layers=3,
     local_mp="gin",
     num_epochs=500,
     dataset="zinc",
     recurrent=False,
     alpha_th=0.9,
+    plot_col="test_score",
 ):
-    df_plot = df[
-        (df["model.num_layers"] == num_layers)
-        & (df["model.local_mp_type"] == local_mp)
-        & (df["training.epochs"] == num_epochs)
-        & (df["dataset.name"] == dataset)
-        & (df["model.recurrent"] == recurrent)
-        & (df["model.alpha"] >= alpha_th)
+    df_plot = raw_data[
+        (raw_data["model.num_layers"] == num_layers)
+        & (raw_data["model.local_mp_type"] == local_mp)
+        & (raw_data["training.epochs"] == num_epochs)
+        & (raw_data["dataset.name"] == dataset)
+        & (raw_data["model.recurrent"] == recurrent)
+        & (raw_data["model.alpha"] >= alpha_th)
     ]
     # list of relevant alphas
     alphas = sorted(df_plot.loc[:, "model.alpha"].unique().tolist())
-    # alpha evaluation flag == a, pivot
+    # only select alpha evaluation flag == a
     df_plot_a = df_plot[df_plot["model.alpha_eval_flag"] == "a"].pivot(
-        columns="model.alpha", values="test_score"
+        columns="model.alpha", values=plot_col
     )
-    # create a list of numpy arrays
+    # create a list of numpy arrays (necessary for boxplot plotting)
     df_plot_a_list_np = [df_plot_a.loc[:, a].dropna().to_numpy() for a in alphas]
 
     plt.boxplot(
@@ -47,9 +48,23 @@ def plot_test(
         positions=[i for i in range(df_plot_a.shape[1])],
         labels=df_plot_a.columns.tolist(),
     )
-    plt.title("Zinc, GIN, same number of layers, lr[1.0] = 0.002 else 0.004")
+    plt.title(
+        dataset
+        + ", "
+        + plot_col
+        + ", "
+        + local_mp
+        + ", "
+        + str(num_layers)
+        + " layers, lr[1.0] = 0.002 else 0.004"
+    )
     plt.xlabel("Alpha")
-    metrics = df_plot["dataset.metric"].unique().tolist()
+    metric_col = (
+        "dataset.metric"
+        if plot_col.split("_")[-1] == "score"
+        else "dataset." + plot_col.split("_")[-1]
+    )
+    metrics = df_plot[metric_col].unique().tolist()
     if len(metrics) > 1:
         raise ValueError("Different metrics used")
     plt.ylabel(metrics[0])
@@ -84,7 +99,9 @@ def main():
         "val_score",
     ]
     raw_data = pd.read_csv(get_data_csv_path()).loc[:, relevant_cols]
-    plot_test(raw_data)
+    plot_score_boxplot(raw_data, plot_col="test_score")
+    plot_score_boxplot(raw_data, plot_col="val_score")
+    plot_score_boxplot(raw_data, plot_col="train_loss")
 
 
 if __name__ == "__main__":
