@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
+PLOT_FOLDER = "C:\python_code\eth\thesis\code\plots"
+
 
 def get_data_csv_path():
     files = os.listdir()

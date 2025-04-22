@@ -2,6 +2,8 @@
 tests
 logs*
 wandb*
+scripts
+plots
 datasets
 test
 cache
