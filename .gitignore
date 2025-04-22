@@ -1,7 +1,7 @@
 ### Custom Directories ###
 tests
 logs*
-wandb*
+wandb
 scripts
 plots
 datasets
