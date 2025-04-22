@@ -4,18 +4,19 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-PLOT_FOLDER = "C:\python_code\eth\thesis\code\plots"
+DATA_FOLDER = r"C:\python_code\eth\thesis\code\scripts"
+PLOT_FOLDER = r"C:\python_code\eth\thesis\code\plots"
 
 
 def get_data_csv_path():
-    files = os.listdir()
+    files = os.listdir(DATA_FOLDER)
     csvs = [f for f in files if f.endswith(".csv")]
 
     # there should only be one csv (always overwritten)
     if len(csvs) > 1:
         raise ValueError("Only one .csv file allowed in the /scripts folder")
 
-    return os.path.abspath(csvs[0])
+    return DATA_FOLDER + "\\" + csvs[0]
 
 
 def plot_score_boxplot(
@@ -48,7 +49,7 @@ def plot_score_boxplot(
     plt.boxplot(
         df_plot_a_list_np,
         positions=[i for i in range(df_plot_a.shape[1])],
-        labels=df_plot_a.columns.tolist(),
+        tick_labels=df_plot_a.columns.tolist(),
     )
     plt.title(
         dataset
@@ -70,7 +71,18 @@ def plot_score_boxplot(
     if len(metrics) > 1:
         raise ValueError("Different metrics used")
     plt.ylabel(metrics[0])
-    plt.show()
+    plt.savefig(
+        PLOT_FOLDER
+        + "/"
+        + dataset
+        + "_"
+        + plot_col
+        + "_"
+        + local_mp
+        + "_"
+        + str(num_layers)
+    )
+    plt.close()
 
 
 def main():
@@ -101,9 +113,8 @@ def main():
         "val_score",
     ]
     raw_data = pd.read_csv(get_data_csv_path()).loc[:, relevant_cols]
-    plot_score_boxplot(raw_data, plot_col="test_score")
-    plot_score_boxplot(raw_data, plot_col="val_score")
-    plot_score_boxplot(raw_data, plot_col="train_loss")
+    for col in ["test_score", "val_score", "train_loss"]:
+        plot_score_boxplot(raw_data, plot_col=col)
 
 
 if __name__ == "__main__":
