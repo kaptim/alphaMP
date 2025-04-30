@@ -118,31 +118,6 @@ def custom_ap(y_pred, y_true):
     return torch.tensor(sum(ap_list) / len(ap_list))
 
 
-def custom_rocauc(y_pred, y_true):
-    """
-    compute ROC-AUC averaged across tasks
-    From OGB: https://github.com/snap-stanford/ogb/blob/master/ogb/graphproppred/evaluate.py
-    """
-
-    rocauc_list = []
-
-    for i in range(y_true.shape[1]):
-        # AUC is only defined when there is at least one positive data.
-        if np.sum(y_true[:, i] == 1) > 0 and np.sum(y_true[:, i] == 0) > 0:
-            # ignore nan values
-            is_labeled = y_true[:, i] == y_true[:, i]
-            rocauc_list.append(
-                roc_auc_score(y_true[is_labeled, i], y_pred[is_labeled, i])
-            )
-
-    if len(rocauc_list) == 0:
-        raise RuntimeError(
-            "No positively labeled data available. Cannot compute ROC-AUC."
-        )
-
-    return {"rocauc": sum(rocauc_list) / len(rocauc_list)}
-
-
 def custom_ogbg(y_pred, y_true, evaluator, metric):
     if isinstance(y_pred, list):
         score = evaluator.eval({"seq_pred": y_pred, "seq_ref": y_true})[metric]
@@ -175,6 +150,7 @@ METRIC = {
     "ogbg-ap": (custom_ogbg, "max"),
     "ogbg-acc": (custom_ogbg, "max"),
     "ogbg-F1": (custom_ogbg, "max"),
+    "ogbg-rocauc": (custom_ogbg, "max"),
 }
 
 

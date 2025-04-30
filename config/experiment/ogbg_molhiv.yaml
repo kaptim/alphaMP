@@ -1,9 +1,9 @@
 # @package _global_
 defaults:
-  - model: ogbg_molhiv
+  - model: mpnn
 
 training:
-  lr: 0.002
+  lr: ${model.lr}
   epochs: 100
   warmup: 5
   weight_decay: 0.0
