@@ -2,7 +2,9 @@
 config/dataset/zinc.yaml
 tests
 logs*
-wandb*
+wandb
+scripts
+plots
 datasets
 test
 cache

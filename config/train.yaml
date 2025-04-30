@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - dataset: ${experiment}
-  - experiment: zinc
+  - experiment: ogbg_molhiv
   - experiment/model: null
   - mode: default
 
@@ -23,8 +23,7 @@ training:
   loss: ${dataset.loss}
   batch_size: 32
   epochs: 100
-  # this is changed in update_cfg
-  iterations: null
+  iterations: null # this is changed in update_cfg
   lr: 0.002
   lr_schedule: cosine
   weight_decay: 0.0

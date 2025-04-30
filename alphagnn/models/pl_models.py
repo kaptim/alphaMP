@@ -31,7 +31,11 @@ class Mpnn_pl(pl.LightningModule):
         self.save_hyperparameters()
 
     def compute_loss(self, batch, return_y=False):
-        y_pred = self.model(batch)
+        y_pred = (
+            self.model(batch).unsqueeze(-1)
+            if self.cfg.dataset.name == "ogbg-molhiv"
+            else self.model(batch)
+        )
         y_true = batch.y_arr if self.cfg.dataset.name == "ogbg-code2" else batch.y
         if isinstance(y_pred, torch.Tensor):
             y_pred = y_pred.squeeze(-1)
