@@ -1,5 +1,3 @@
-# matplotlib, plot bars with standard deviation
-# nice plots => thesis, think of story
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
@@ -27,6 +25,7 @@ def plot_score_boxplot(
     dataset="zinc",
     recurrent=False,
     alpha_th=0.9,
+    alpha_flag="a",
     plot_col="test_score",
 ):
     df_plot = raw_data[
@@ -36,11 +35,12 @@ def plot_score_boxplot(
         & (raw_data["dataset.name"] == dataset)
         & (raw_data["model.recurrent"] == recurrent)
         & (raw_data["model.alpha"] >= alpha_th)
+        & (raw_data["model.alpha_eval_flag"] == alpha_flag)
     ]
     # list of relevant alphas
     alphas = sorted(df_plot.loc[:, "model.alpha"].unique().tolist())
-    # only select alpha evaluation flag == a
-    df_plot_a = df_plot[df_plot["model.alpha_eval_flag"] == "a"].pivot(
+    # only select alpha evaluation flag
+    df_plot_a = df_plot[df_plot["model.alpha_eval_flag"] == alpha_flag].pivot(
         columns="model.alpha", values=plot_col
     )
     # create a list of numpy arrays (necessary for boxplot plotting)
@@ -80,6 +80,8 @@ def plot_score_boxplot(
         + "_"
         + local_mp
         + "_"
+        + alpha_flag
+        + "_"
         + str(num_layers)
     )
     plt.close()
@@ -114,7 +116,8 @@ def main():
     ]
     raw_data = pd.read_csv(get_data_csv_path()).loc[:, relevant_cols]
     for col in ["test_score", "val_score", "train_loss"]:
-        plot_score_boxplot(raw_data, plot_col=col)
+        for alpha in ["a", "p", "n"]:
+            plot_score_boxplot(raw_data, plot_col=col, alpha_flag=alpha)
 
 
 if __name__ == "__main__":
