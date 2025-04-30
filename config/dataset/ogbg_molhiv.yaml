@@ -4,5 +4,5 @@ path: ./datasets/OGBGDataset
 in_node_dim: atom
 in_edge_dim: bond
 num_class: 1
-loss: ce
+loss: bce # ce expects one output per class
 metric: ogbg-rocauc

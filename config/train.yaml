@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - dataset: ${experiment}
-  - experiment: zinc
+  - experiment: ogbg_molhiv
   - experiment/model: null
   - mode: default
 
