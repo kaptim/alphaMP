@@ -1,4 +1,5 @@
 ### Custom Directories ###
+config/dataset/zinc.yaml
 tests
 logs*
 wandb*
