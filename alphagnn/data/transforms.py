@@ -47,6 +47,7 @@ class Preprocessor(object):
             data = structured_neg_sampling_transform(data)
             data.y = data.pop("edge_label")
         if self.dataset == "ogbg-ppa":
+            # ppa does not have any node features so add zeros
             data.x = torch.zeros(data.num_nodes, dtype=torch.long)
             data.y = data.y.squeeze(-1)
         if self.dataset == "ogbg-code2":
