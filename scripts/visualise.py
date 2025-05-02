@@ -21,7 +21,6 @@ def plot_score_boxplot(
     raw_data: pd.DataFrame,
     num_layers=3,
     local_mp="gin",
-    num_epochs=500,
     dataset="zinc",
     recurrent=False,
     alpha_th=0.9,
@@ -31,12 +30,14 @@ def plot_score_boxplot(
     df_plot = raw_data[
         (raw_data["model.num_layers"] == num_layers)
         & (raw_data["model.local_mp_type"] == local_mp)
-        & (raw_data["training.epochs"] == num_epochs)
         & (raw_data["dataset.name"] == dataset)
         & (raw_data["model.recurrent"] == recurrent)
         & (raw_data["model.alpha"] >= alpha_th)
         & (raw_data["model.alpha_eval_flag"] == alpha_flag)
     ]
+    # only take the runs with the maximum number of epochs present in the data
+    # (for a fair comparison of the best runs)
+    df_plot = df_plot[df_plot["training.epochs"] == df_plot["training.epochs"].max()]
     # list of relevant alphas
     alphas = sorted(df_plot.loc[:, "model.alpha"].unique().tolist())
     # only select alpha evaluation flag
