@@ -87,6 +87,24 @@ def plot_score_boxplot(
     plt.close()
 
 
+def plot_zinc(raw_data):
+    for col in ["test_score", "val_score", "train_loss"]:
+        for alpha in ["a"]:
+            plot_score_boxplot(raw_data, plot_col=col, alpha_flag=alpha, dataset="zinc")
+
+
+def plot_molhiv(raw_data):
+    for col in ["test_score", "val_score", "train_loss"]:
+        for alpha in ["a"]:
+            plot_score_boxplot(
+                raw_data,
+                plot_col=col,
+                alpha_flag=alpha,
+                dataset="ogbg-molhiv",
+                num_epochs=100,
+            )
+
+
 def main():
     # keep those columns which one needs for plotting
     relevant_cols = [
@@ -115,9 +133,10 @@ def main():
         "val_score",
     ]
     raw_data = pd.read_csv(get_data_csv_path()).loc[:, relevant_cols]
-    for col in ["test_score", "val_score", "train_loss"]:
-        for alpha in ["a", "p", "n"]:
-            plot_score_boxplot(raw_data, plot_col=col, alpha_flag=alpha)
+
+    # plot
+    plot_zinc(raw_data)
+    plot_molhiv(raw_data)
 
 
 if __name__ == "__main__":
