@@ -186,25 +186,40 @@ class Mpnn(torch.nn.Module):
         # training: some old values, some new values
         # evaluation: depends on self.alpha_evaluation_flag
         # .to(device=batch.x.device)
-        print("hello")
         mask = self.get_mask(batch.x.shape[0])
         colors, color_mask = self.get_coloring(batch)
         # TODO: store coloring in the batch to avoid recomputation
         if not self.recurrent:
             for block in self.blocks:
-                # block() calls forward (after registering hooks), modifies batch in place
-                # i.e., you should read this as "keep some values of the original batch,
-                # update batch (by passing it through the layer) and keep some (mask) of the new values"
-                batch.x = (1 - mask) * batch.x + mask * block(batch).x
-                # TODO: coloring, loop through colors, combine color_mask with mask, do one update
                 for color in colors:
+                    # only update nodes with color=color in this iteration
                     combined_mask = (
                         torch.as_tensor(
                             np.logical_not(color_mask - color).astype(int)
                         ).unsqueeze(-1)
                         * mask
-                    )
+                    ).to(device=batch.x.device)
+                    # block() calls forward (after registering hooks), modifies batch in place
+                    # i.e., you should read this as "keep some values of the original batch,
+                    # update batch (by passing it through the layer) and keep some (mask) of the new values"
+                    batch.x = (1 - combined_mask) * batch.x + combined_mask * block(
+                        batch
+                    ).x
+
         else:
             # apply one layer recurrently
             for i in range(self.num_layers):
-                batch.x = (1 - mask) * batch.x + mask * self.blocks(batch).x
+                for color in colors:
+                    # only update nodes with color=color in this iteration
+                    combined_mask = (
+                        torch.as_tensor(
+                            np.logical_not(color_mask - color).astype(int)
+                        ).unsqueeze(-1)
+                        * mask
+                    ).to(device=batch.x.device)
+                    # block() calls forward (after registering hooks), modifies batch in place
+                    # i.e., you should read this as "keep some values of the original batch,
+                    # update batch (by passing it through the layer) and keep some (mask) of the new values"
+                    batch.x = (
+                        1 - combined_mask
+                    ) * batch.x + combined_mask * self.blocks(batch).x
