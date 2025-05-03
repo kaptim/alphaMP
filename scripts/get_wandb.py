@@ -136,7 +136,7 @@ def save_dict_list_to_csv(dict_list: list):
     # Check if a csv starting with file_prefix exists, remove if necessary
     for f_name in os.listdir(DIRECTORY):
         if f_name.startswith(file_prefix):
-            os.remove(f_name)
+            os.remove(DIRECTORY + "/" + f_name)
 
     # Save the list of dicts as a pandas DataFrame to a CSV file
     df = pd.DataFrame(dict_list)

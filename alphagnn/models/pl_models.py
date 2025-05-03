@@ -31,6 +31,7 @@ class Mpnn_pl(pl.LightningModule):
         self.save_hyperparameters()
 
     def compute_loss(self, batch, return_y=False):
+        # update for molhiv: binary classification, only one task
         y_pred = (
             self.model(batch).unsqueeze(-1)
             if self.cfg.dataset.name == "ogbg-molhiv"
