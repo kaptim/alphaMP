@@ -36,6 +36,7 @@ class Mpnn(torch.nn.Module):
         self.recurrent = recurrent
         # use coloring to update iteratively
         self.use_coloring = use_coloring
+        print(use_coloring)
         self.num_layers = num_layers
 
         self.feature_encoder = FeatureEncoder(
@@ -178,7 +179,14 @@ class Mpnn(torch.nn.Module):
         # returns a dict node:color
         coloring = nx.coloring.greedy_color(g)
         # create color mask for faster updating
-        color_mask = np.array([coloring[i] for i in range(batch.x.shape[0])])
+        # there may be some isolated nodes
+        # (e.g., https://github.com/snap-stanford/ogb/issues/109)
+        # which are not included in g (it was constructed using an adjacency matrix)
+        # so we color those nodes with the first color 0
+        color_mask = np.array(
+            [coloring[i] for i in range(len(coloring.keys()))]
+            + [0 for i in range(len(coloring.keys()), batch.x.shape[0])]
+        )
         return set(coloring.values()), color_mask
 
     def masked_update(self, batch):
