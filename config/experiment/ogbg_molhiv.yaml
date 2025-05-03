@@ -12,5 +12,4 @@ training:
 model:
   node_embed: true
   edge_embed: true
-  dropout: 0.4
   global_pool: mean

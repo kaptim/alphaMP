@@ -12,6 +12,7 @@ class GRUConv(gnn.MessagePassing):
         self.rnn = torch.nn.GRUCell(emb_dim, emb_dim)
 
     def forward(self, x, edge_index):
+        # TODO: this is unfinished
         out = self.rnn(self.propagate(edge_index, x=x), x)
         return out
 
