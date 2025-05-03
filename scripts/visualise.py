@@ -102,7 +102,6 @@ def plot_molhiv(raw_data):
                 plot_col=col,
                 alpha_flag=alpha,
                 dataset="ogbg-molhiv",
-                num_epochs=100,
             )
 
 
