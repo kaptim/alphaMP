@@ -52,6 +52,21 @@ def main(cfg):
             # debugging: only csv logger
             # csv_flag = False: only wandb (standard)
             [pl.loggers.CSVLogger(cfg.logs.path, name="csv_logs")]
+            if cfg.debug
+            else (
+                [
+                    pl.loggers.CSVLogger(cfg.logs.path, name="csv_logs"),
+                    pl.loggers.WandbLogger(
+                        name=cfg.logs.wandb_name, project="async_gnn"
+                    ),
+                ]
+                if cfg.logs.csv_flag
+                else [
+                    pl.loggers.WandbLogger(
+                        name=cfg.logs.wandb_name, project="async_gnn"
+                    ),
+                ]
+            )
         ),
         callbacks=[
             pl.callbacks.LearningRateMonitor(logging_interval="epoch"),
