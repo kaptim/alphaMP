@@ -8,5 +8,5 @@ model:
   alpha: 0.91
   alpha_eval_flag: a
   recurrent: False
-  use_coloring: True
+  use_coloring: False
   lr: 0.004
