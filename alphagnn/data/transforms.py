@@ -53,6 +53,8 @@ class Preprocessor(object):
         if self.dataset == "ogbg-code2":
             data = self.transform(data)
             data.node_depth = data.node_depth.squeeze(-1)
+        data.color_mask = 0
+        data.colors = 0
         return data
 
 

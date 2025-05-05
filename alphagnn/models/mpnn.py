@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 import torch
 import torch_geometric.nn as gnn
-from torch_geometric.utils.convert import to_scipy_sparse_matrix
+from torch_geometric.utils import to_networkx
 from ..modules.head import PredictionHead
 from ..modules.feature_encoder import FeatureEncoder
 from ..modules.mpnn_layer import MpnnLayer
@@ -162,49 +162,49 @@ class Mpnn(torch.nn.Module):
 
     def get_coloring(self, batch):
         # compute the coloring for a graph
-        # return: colors (to loop through, one update per color), mask
+        # saves colors (to loop through, one update per color), mask in batch
         if not self.use_coloring:
             # coloring not used => return one-colored mask
-            return {0}, np.zeros(batch.x.shape[0], dtype=int)
-        if not batch.is_directed():
-            # undirected graph
-            g = nx.from_numpy_array(to_scipy_sparse_matrix(batch.edge_index).todense())
-        else:
-            # directed graph
-            # TODO: test with directed dataset, e.g., MNIST, CIFAR10
-            g = nx.from_numpy_array(
-                to_scipy_sparse_matrix(batch.edge_index).todense(),
-                create_using=nx.DiGraph,
-            )
+            batch.color_mask = torch.zeros(batch.x.shape[0], dtype=int)
+            batch.colors = {0}
+            return None
+        # TODO: test with directed dataset, e.g., MNIST, CIFAR10
         # returns a dict node:color
-        coloring = nx.coloring.greedy_color(g)
+        coloring = nx.coloring.greedy_color(
+            to_networkx(batch, to_undirected=not batch.is_directed())
+        )
         # create color mask for faster updating
         # there may be some isolated nodes
         # (e.g., https://github.com/snap-stanford/ogb/issues/109)
-        # which are not included in g (it was constructed using an adjacency matrix)
-        # so we color those nodes with the first color 0
-        color_mask = np.array(
+        # which are not included in the graph so we color those nodes with the first color 0
+        color_mask = torch.tensor(
             [coloring[i] for i in range(len(coloring.keys()))]
             + [0 for i in range(len(coloring.keys()), batch.x.shape[0])]
         )
-        return set(coloring.values()), color_mask
+        # save in batch
+        print("hi")
+        batch.color_mask = color_mask
+        batch.colors = set(coloring.values())
+
+    def get_centrality(self, batch):
+        # simply compute centrality based on a networkx graph
+        pass
 
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
         # training: some old values, some new values
         # evaluation: depends on self.alpha_evaluation_flag
-        # .to(device=batch.x.device)
         mask = self.get_mask(batch.x.shape[0])
-        colors, color_mask = self.get_coloring(batch)
-        # TODO: store coloring in the batch to avoid recomputation
+        # TODO: any vs. all?
+        if not batch.color_mask.all():
+            # only compute coloring if not already saved as attribute of batch
+            self.get_coloring(batch)
         if not self.recurrent:
             for block in self.blocks:
-                for color in colors:
+                for color in batch.colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
-                        torch.as_tensor(
-                            np.logical_not(color_mask - color).astype(int)
-                        ).unsqueeze(-1)
+                        torch.logical_not(batch.color_mask - color).int().unsqueeze(-1)
                         * mask
                     ).to(device=batch.x.device)
                     # block() calls forward (after registering hooks), modifies batch in place
@@ -217,11 +217,11 @@ class Mpnn(torch.nn.Module):
         else:
             # apply one layer recurrently
             for i in range(self.num_layers):
-                for color in colors:
+                for color in batch.colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
                         torch.as_tensor(
-                            np.logical_not(color_mask - color).astype(int)
+                            np.logical_not(batch.color_mask - color).astype(int)
                         ).unsqueeze(-1)
                         * mask
                     ).to(device=batch.x.device)

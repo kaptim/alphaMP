@@ -36,6 +36,7 @@ def plot_score_boxplot(
         & (raw_data["model.alpha"] >= alpha_th)
         & (raw_data["model.alpha_eval_flag"] == alpha_flag)
         & (raw_data["model.use_coloring"] == use_coloring)
+        # TODO: also include NA / fillna in get_wandb
     ]
     # only take the runs with the maximum number of epochs present in the data
     # (for a fair comparison of the best runs)
@@ -88,6 +89,8 @@ def plot_score_boxplot(
         + ("colored" if use_coloring else "")
         + "_"
         + str(num_layers)
+        + "_"
+        + ("drop" if df_plot["model.dropout"].min() > 0 else "")
     )
     plt.close()
 
@@ -125,6 +128,19 @@ def plot_molhiv_colored(raw_data):
             )
 
 
+def plot_molhiv_dropout(raw_data):
+    # with + without dropout? coloring?
+    raw_data_dropout = raw_data[raw_data["model.dropout"] != 0.0]
+    for col in ["test_score", "val_score", "train_loss"]:
+        for alpha in ["a"]:
+            plot_score_boxplot(
+                raw_data_dropout,
+                plot_col=col,
+                alpha_flag=alpha,
+                dataset="ogbg-molhiv",
+            )
+
+
 def main():
     # keep those columns which one needs for plotting
     relevant_cols = [
@@ -159,6 +175,7 @@ def main():
     plot_zinc(raw_data)
     plot_molhiv(raw_data)
     plot_molhiv_colored(raw_data)
+    plot_molhiv_dropout(raw_data)
 
 
 if __name__ == "__main__":
