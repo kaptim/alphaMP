@@ -80,12 +80,19 @@ class NetworkAnalysis(BaseTransform):
             [coloring[i] for i in range(len(coloring.keys()))]
             + [0 for i in range(len(coloring.keys()), data.x.shape[0])]
         )
-        # save in batch
-        data.color_mask = color_mask
+        # save as data attribute
+        data.coloring = color_mask
 
     def get_centrality(self, g, data):
-        # simply compute centrality based on a networkx graph
-        pass
+        # compute the centrality for each node of a graph
+        centrality = nx.betweenness_centrality(g)
+        # insert 0 for each disconnected node
+        centrality_mask = torch.tensor(
+            [centrality[i] for i in range(len(centrality.keys()))]
+            + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
+        )
+        # save as data attribute
+        data.centrality = centrality_mask
 
 
 def custom_structured_negative_sampling(
