@@ -12,7 +12,11 @@ from timeit import default_timer as timer
 
 from alphagnn.models import Mpnn_pl
 from alphagnn.data import get_dataset
-from alphagnn.data.transforms import Preprocessor, feature_normalization
+from alphagnn.data.transforms import (
+    Preprocessor,
+    NetworkAnalysis,
+    feature_normalization,
+)
 from alphagnn.utils import update_cfg
 
 torch.backends.cuda.matmul.allow_tf32 = True  # Default False in PyTorch 1.12+
@@ -28,8 +32,16 @@ def main(cfg):
     log.info(f"Configs:\n{OmegaConf.to_yaml(cfg)}")
     pl.seed_everything(cfg.seed, workers=True)
 
+    # transformation which is implicitly applied on every access of the data
     preprocessor = Preprocessor(cfg.dataset.name)
-    dataset = get_dataset(cfg, transform=preprocessor, test_transform=preprocessor)
+    # explicitly applied when loading the dataset (e.g., graph coloring)
+    nx_analysis = NetworkAnalysis()
+    dataset = get_dataset(
+        cfg,
+        transform=preprocessor,
+        test_transform=preprocessor,
+        pre_transform=nx_analysis,
+    )
     feature_normalization(dataset, cfg.dataset.name)
 
     cfg = update_cfg(cfg, dataset)

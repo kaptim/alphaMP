@@ -1,8 +1,5 @@
-import networkx as nx
-import numpy as np
 import torch
 import torch_geometric.nn as gnn
-from torch_geometric.utils import to_networkx
 from ..modules.head import PredictionHead
 from ..modules.feature_encoder import FeatureEncoder
 from ..modules.mpnn_layer import MpnnLayer
@@ -36,7 +33,6 @@ class Mpnn(torch.nn.Module):
         self.recurrent = recurrent
         # use coloring to update iteratively
         self.use_coloring = use_coloring
-        print(use_coloring)
         self.num_layers = num_layers
 
         self.feature_encoder = FeatureEncoder(
@@ -160,53 +156,21 @@ class Mpnn(torch.nn.Module):
             else:
                 raise RuntimeError(f"Unexpected alpha flag: {self.alpha_eval_flag}")
 
-    def get_coloring(self, batch):
-        # compute the coloring for a graph
-        # saves colors (to loop through, one update per color), mask in batch
-        if not self.use_coloring:
-            # coloring not used => return one-colored mask
-            batch.color_mask = torch.zeros(batch.x.shape[0], dtype=int)
-            batch.colors = {0}
-            return None
-        # TODO: test with directed dataset, e.g., MNIST, CIFAR10
-        # returns a dict node:color
-        coloring = nx.coloring.greedy_color(
-            to_networkx(batch, to_undirected=not batch.is_directed())
-        )
-        # create color mask for faster updating
-        # there may be some isolated nodes
-        # (e.g., https://github.com/snap-stanford/ogb/issues/109)
-        # which are not included in the graph so we color those nodes with the first color 0
-        color_mask = torch.tensor(
-            [coloring[i] for i in range(len(coloring.keys()))]
-            + [0 for i in range(len(coloring.keys()), batch.x.shape[0])]
-        )
-        # save in batch
-        print("hi")
-        batch.color_mask = color_mask
-        batch.colors = set(coloring.values())
-
-    def get_centrality(self, batch):
-        # simply compute centrality based on a networkx graph
-        pass
-
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
         # training: some old values, some new values
         # evaluation: depends on self.alpha_evaluation_flag
-        mask = self.get_mask(batch.x.shape[0])
-        # TODO: any vs. all?
-        if not batch.color_mask.all():
-            # only compute coloring if not already saved as attribute of batch
-            self.get_coloring(batch)
+        mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
+        print("hello")
+        colors = batch.color_mask.unique().tolist()
         if not self.recurrent:
             for block in self.blocks:
-                for color in batch.colors:
+                for color in colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
                         torch.logical_not(batch.color_mask - color).int().unsqueeze(-1)
                         * mask
-                    ).to(device=batch.x.device)
+                    )
                     # block() calls forward (after registering hooks), modifies batch in place
                     # i.e., you should read this as "keep some values of the original batch,
                     # update batch (by passing it through the layer) and keep some (mask) of the new values"
@@ -217,17 +181,13 @@ class Mpnn(torch.nn.Module):
         else:
             # apply one layer recurrently
             for i in range(self.num_layers):
-                for color in batch.colors:
+                for color in colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
-                        torch.as_tensor(
-                            np.logical_not(batch.color_mask - color).astype(int)
-                        ).unsqueeze(-1)
+                        torch.logical_not(batch.color_mask - color).int().unsqueeze(-1)
                         * mask
-                    ).to(device=batch.x.device)
-                    # block() calls forward (after registering hooks), modifies batch in place
-                    # i.e., you should read this as "keep some values of the original batch,
-                    # update batch (by passing it through the layer) and keep some (mask) of the new values"
+                    )
+                    # difference to above: self.blocks instead of block
                     batch.x = (
                         1 - combined_mask
                     ) * batch.x + combined_mask * self.blocks(batch).x
