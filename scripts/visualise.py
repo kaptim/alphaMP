@@ -23,6 +23,7 @@ def plot_score_boxplot(
     local_mp="gin",
     dataset="zinc",
     recurrent=False,
+    use_coloring=False,
     alpha_th=0.9,
     alpha_flag="a",
     plot_col="test_score",
@@ -34,6 +35,8 @@ def plot_score_boxplot(
         & (raw_data["model.recurrent"] == recurrent)
         & (raw_data["model.alpha"] >= alpha_th)
         & (raw_data["model.alpha_eval_flag"] == alpha_flag)
+        & (raw_data["model.use_coloring"] == use_coloring)
+        # TODO: also include NA / fillna in get_wandb
     ]
     # only take the runs with the maximum number of epochs present in the data
     # (for a fair comparison of the best runs)
@@ -83,7 +86,11 @@ def plot_score_boxplot(
         + "_"
         + alpha_flag
         + "_"
+        + ("colored" if use_coloring else "")
+        + "_"
         + str(num_layers)
+        + "_"
+        + ("drop" if df_plot["model.dropout"].min() > 0 else "")
     )
     plt.close()
 
@@ -95,10 +102,39 @@ def plot_zinc(raw_data):
 
 
 def plot_molhiv(raw_data):
+    # with + without dropout? coloring?
+    raw_data_no_dropout = raw_data[raw_data["model.dropout"] == 0.0]
     for col in ["test_score", "val_score", "train_loss"]:
         for alpha in ["a"]:
             plot_score_boxplot(
-                raw_data,
+                raw_data_no_dropout,
+                plot_col=col,
+                alpha_flag=alpha,
+                dataset="ogbg-molhiv",
+            )
+
+
+def plot_molhiv_colored(raw_data):
+    # with + without dropout? coloring?
+    raw_data_no_dropout = raw_data[raw_data["model.dropout"] == 0.0]
+    for col in ["test_score", "val_score", "train_loss"]:
+        for alpha in ["a"]:
+            plot_score_boxplot(
+                raw_data_no_dropout,
+                plot_col=col,
+                alpha_flag=alpha,
+                dataset="ogbg-molhiv",
+                use_coloring=True,
+            )
+
+
+def plot_molhiv_dropout(raw_data):
+    # with + without dropout? coloring?
+    raw_data_dropout = raw_data[raw_data["model.dropout"] != 0.0]
+    for col in ["test_score", "val_score", "train_loss"]:
+        for alpha in ["a"]:
+            plot_score_boxplot(
+                raw_data_dropout,
                 plot_col=col,
                 alpha_flag=alpha,
                 dataset="ogbg-molhiv",
@@ -121,6 +157,7 @@ def main():
         "model.alpha",
         "model.alpha_eval_flag",
         "model.recurrent",
+        "model.use_coloring",
         "model.lr",
         "dataset.name",
         "dataset.loss",
@@ -137,6 +174,8 @@ def main():
     # plot
     plot_zinc(raw_data)
     plot_molhiv(raw_data)
+    plot_molhiv_colored(raw_data)
+    plot_molhiv_dropout(raw_data)
 
 
 if __name__ == "__main__":

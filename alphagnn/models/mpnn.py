@@ -1,8 +1,5 @@
-import networkx as nx
-import numpy as np
 import torch
 import torch_geometric.nn as gnn
-from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from ..modules.head import PredictionHead
 from ..modules.feature_encoder import FeatureEncoder
 from ..modules.mpnn_layer import MpnnLayer
@@ -36,7 +33,6 @@ class Mpnn(torch.nn.Module):
         self.recurrent = recurrent
         # use coloring to update iteratively
         self.use_coloring = use_coloring
-        print(use_coloring)
         self.num_layers = num_layers
 
         self.feature_encoder = FeatureEncoder(
@@ -131,6 +127,7 @@ class Mpnn(torch.nn.Module):
         return self.parameters()
 
     def get_mask(self, num_nodes):
+        # TODO: need to implement centrality here
         """Training: returns a probabilistic mask tensor of size (num_nodes, 1)
             where each value is 1 with probability self.alpha, 0 otherwise
            Evaluation: depends on self.alpha_eval_flag
@@ -160,53 +157,17 @@ class Mpnn(torch.nn.Module):
             else:
                 raise RuntimeError(f"Unexpected alpha flag: {self.alpha_eval_flag}")
 
-    def get_coloring(self, batch):
-        # compute the coloring for a graph
-        # return: colors (to loop through, one update per color), mask
-        if not self.use_coloring:
-            # coloring not used => return one-colored mask
-            return {0}, np.zeros(batch.x.shape[0], dtype=int)
-        if not batch.is_directed():
-            # undirected graph
-            g = nx.from_numpy_array(to_scipy_sparse_matrix(batch.edge_index).todense())
-        else:
-            # directed graph
-            # TODO: test with directed dataset, e.g., MNIST, CIFAR10
-            g = nx.from_numpy_array(
-                to_scipy_sparse_matrix(batch.edge_index).todense(),
-                create_using=nx.DiGraph,
-            )
-        # returns a dict node:color
-        coloring = nx.coloring.greedy_color(g)
-        # create color mask for faster updating
-        # there may be some isolated nodes
-        # (e.g., https://github.com/snap-stanford/ogb/issues/109)
-        # which are not included in g (it was constructed using an adjacency matrix)
-        # so we color those nodes with the first color 0
-        color_mask = np.array(
-            [coloring[i] for i in range(len(coloring.keys()))]
-            + [0 for i in range(len(coloring.keys()), batch.x.shape[0])]
-        )
-        return set(coloring.values()), color_mask
-
-    def masked_update(self, batch):
-        # performs the update on this batch including all necessary masking
-        # training: some old values, some new values
-        # evaluation: depends on self.alpha_evaluation_flag
-        # .to(device=batch.x.device)
-        mask = self.get_mask(batch.x.shape[0])
-        colors, color_mask = self.get_coloring(batch)
-        # TODO: store coloring in the batch to avoid recomputation
+    def color_update(self, batch, mask):
+        # update using coloring of the graph
+        colors = batch.coloring.unique().tolist()
         if not self.recurrent:
             for block in self.blocks:
                 for color in colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
-                        torch.as_tensor(
-                            np.logical_not(color_mask - color).astype(int)
-                        ).unsqueeze(-1)
+                        torch.logical_not(batch.coloring - color).int().unsqueeze(-1)
                         * mask
-                    ).to(device=batch.x.device)
+                    )
                     # block() calls forward (after registering hooks), modifies batch in place
                     # i.e., you should read this as "keep some values of the original batch,
                     # update batch (by passing it through the layer) and keep some (mask) of the new values"
@@ -220,14 +181,31 @@ class Mpnn(torch.nn.Module):
                 for color in colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
-                        torch.as_tensor(
-                            np.logical_not(color_mask - color).astype(int)
-                        ).unsqueeze(-1)
+                        torch.logical_not(batch.coloring - color).int().unsqueeze(-1)
                         * mask
-                    ).to(device=batch.x.device)
-                    # block() calls forward (after registering hooks), modifies batch in place
-                    # i.e., you should read this as "keep some values of the original batch,
-                    # update batch (by passing it through the layer) and keep some (mask) of the new values"
+                    )
+                    # difference to above: self.blocks instead of block
                     batch.x = (
                         1 - combined_mask
                     ) * batch.x + combined_mask * self.blocks(batch).x
+
+    def masked_update(self, batch):
+        # performs the update on this batch including all necessary masking
+        # training: some old values, some new values
+        # evaluation: depends on self.alpha_evaluation_flag
+        mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
+        if self.use_coloring:
+            self.color_update(batch, mask)
+            return
+        if not self.recurrent:
+            for block in self.blocks:
+                # block() calls forward (after registering hooks), modifies batch in place
+                # i.e., you should read this as "keep some values of the original batch,
+                # update batch (by passing it through the layer) and keep some (mask) of the new values"
+                batch.x = (1 - mask) * batch.x + mask * block(batch).x
+
+        else:
+            # apply one layer recurrently
+            for i in range(self.num_layers):
+                # difference to above: self.blocks instead of block
+                batch.x = (1 - mask) * batch.x + mask * self.blocks(batch).x

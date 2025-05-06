@@ -4,7 +4,7 @@ from torch.utils.data import Dataset, Subset
 from hydra.utils import get_class
 
 
-def get_dataset(cfg, transform=None, test_transform=None):
+def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
     if test_transform is None:
         test_transform = transform
     cls_name = get_class(cfg.dataset.cls_name)
@@ -52,7 +52,9 @@ def get_dataset(cfg, transform=None, test_transform=None):
         )
         return dataset
     elif "ogbg" in cfg.dataset.name:
-        dataset = cls_name(name=cfg.dataset.name, root=cfg.dataset.path)
+        dataset = cls_name(
+            name=cfg.dataset.name, root=cfg.dataset.path, pre_transform=pre_transform
+        )
         split_idx = dataset.get_idx_split()
         transform.build_vocab(dataset, split_idx)
         train_idx, val_idx = clip_graph_size(
