@@ -21,6 +21,7 @@ class Mpnn(torch.nn.Module):
         pad_idx=-1,
         alpha=0.5,
         alpha_eval_flag="a",
+        centrality_range=0,
         recurrent=False,
         use_coloring=False,
         **kwargs,
@@ -28,11 +29,14 @@ class Mpnn(torch.nn.Module):
         super().__init__()
         self.pad_idx = pad_idx
         self.alpha = alpha
+        # inference: a: use alpha values, p: bernoulli (as in training), n: nothing
         self.alpha_eval_flag = alpha_eval_flag
         # only use one layer multiple times
         self.recurrent = recurrent
         # use coloring to update iteratively
         self.use_coloring = use_coloring
+        # alpha values in [alpha-centrality_range, alpha], 0 => no centrality used
+        self.centrality_range = centrality_range
         self.num_layers = num_layers
 
         self.feature_encoder = FeatureEncoder(
@@ -126,7 +130,7 @@ class Mpnn(torch.nn.Module):
     def get_params(self):
         return self.parameters()
 
-    def get_mask(self, num_nodes):
+    def get_mask(self, batch):
         # TODO: need to implement centrality here
         """Training: returns a probabilistic mask tensor of size (num_nodes, 1)
             where each value is 1 with probability self.alpha, 0 otherwise
@@ -142,7 +146,15 @@ class Mpnn(torch.nn.Module):
         Returns:
             torch.tensor: (num_nodes, 1) mask to be multiplied with the updated batch
         """
-        alphas = torch.full((num_nodes, 1), fill_value=self.alpha)
+        alphas = torch.full(
+            (batch.x.shape[0], 1), fill_value=self.alpha - self.centrality_range
+        ).to(device=batch.x.device)
+        if alphas.max() + self.centrality_range * batch.centrality.max() > 1:
+            raise RuntimeError(
+                f"Alpha value too high: {self.alpha + self.centrality_range * batch.centrality.max()}"
+            )
+        # adapt alphas using the centrality information of the nodes
+        alphas += batch.centrality.unsqueeze(-1) * self.centrality_range
         if self.training:
             return torch.bernoulli(alphas).int()
         else:
@@ -153,7 +165,9 @@ class Mpnn(torch.nn.Module):
                 return torch.bernoulli(alphas).int()
             elif self.alpha_eval_flag == "n":
                 # no mask during inference
-                return torch.full((num_nodes, 1), fill_value=1)
+                return torch.full((batch.x.shape[0], 1), fill_value=1).to(
+                    device=batch.x.device
+                )
             else:
                 raise RuntimeError(f"Unexpected alpha flag: {self.alpha_eval_flag}")
 
@@ -193,7 +207,7 @@ class Mpnn(torch.nn.Module):
         # performs the update on this batch including all necessary masking
         # training: some old values, some new values
         # evaluation: depends on self.alpha_evaluation_flag
-        mask = self.get_mask(batch.x.shape[0]).to(device=batch.x.device)
+        mask = self.get_mask(batch)
         if self.use_coloring:
             self.color_update(batch, mask)
             return

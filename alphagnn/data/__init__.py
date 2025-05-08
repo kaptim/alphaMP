@@ -15,12 +15,26 @@ def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
     }
     if cfg.dataset.name == "zinc":
         dataset = LightningDataset(
-            cls_name(cfg.dataset.path, subset=True, split="train", transform=transform),
             cls_name(
-                cfg.dataset.path, subset=True, split="val", transform=test_transform
+                cfg.dataset.path,
+                subset=True,
+                split="train",
+                transform=transform,
+                pre_transform=pre_transform,
             ),
             cls_name(
-                cfg.dataset.path, subset=True, split="test", transform=test_transform
+                cfg.dataset.path,
+                subset=True,
+                split="val",
+                transform=test_transform,
+                pre_transform=pre_transform,
+            ),
+            cls_name(
+                cfg.dataset.path,
+                subset=True,
+                split="test",
+                transform=test_transform,
+                pre_transform=pre_transform,
             ),
             **kwargs,
         )
@@ -34,19 +48,25 @@ def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
     ]:
         dataset = LightningDataset(
             cls_name(
-                cfg.dataset.path, cfg.dataset.name, split="train", transform=transform
+                cfg.dataset.path,
+                cfg.dataset.name,
+                split="train",
+                transform=transform,
+                pre_transform=pre_transform,
             ),
             cls_name(
                 cfg.dataset.path,
                 cfg.dataset.name,
                 split="val",
                 transform=test_transform,
+                pre_transform=pre_transform,
             ),
             cls_name(
                 cfg.dataset.path,
                 cfg.dataset.name,
                 split="test",
                 transform=test_transform,
+                pre_transform=pre_transform,
             ),
             **kwargs,
         )
