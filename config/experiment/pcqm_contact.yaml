@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - model: mamba+vn_3L
+  - model: mpnn
 
 training:
   lr: 0.001
@@ -8,11 +8,6 @@ training:
   warmup: 10
   weight_decay: 0.0
   batch_size: 256
-
-random_walk:
-  length: 75
-  window_size: 16
-  sample_rate: 0.5
 
 model:
   node_embed: true

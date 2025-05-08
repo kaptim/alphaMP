@@ -131,21 +131,9 @@ class Mpnn(torch.nn.Module):
         return self.parameters()
 
     def get_mask(self, batch):
-        # TODO: need to implement centrality here
-        """Training: returns a probabilistic mask tensor of size (num_nodes, 1)
-            where each value is 1 with probability self.alpha, 0 otherwise
-           Evaluation: depends on self.alpha_eval_flag
-            'a': mask tensor of size (num_nodes, 1) containing alpha
-            'p': probabilistic mask tensor of size (num_nodes, 1) (same as for training)
-            'n': no mask during inference
-
-        Args:
-            num_nodes (int): Number of nodes in the batch
-            alpha (float, optional): Probability of a node update. Defaults to 0.5.
-
-        Returns:
-            torch.tensor: (num_nodes, 1) mask to be multiplied with the updated batch
-        """
+        # return mask for the batch based on self.alpha and self.centrality_range
+        # training: alpha is used as the probability for a bernoulli distribution
+        # inference: depends on self.alpha_eval_flag
         alphas = torch.full(
             (batch.x.shape[0], 1), fill_value=self.alpha - self.centrality_range
         ).to(device=batch.x.device)

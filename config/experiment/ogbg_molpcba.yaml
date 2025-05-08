@@ -3,7 +3,7 @@ defaults:
   - model: mpnn
 
 training:
-  lr: ${model.lr}
+  lr: 0.002
   epochs: 100
   warmup: 5
   weight_decay: 0.0
