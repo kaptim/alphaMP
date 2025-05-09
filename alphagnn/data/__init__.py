@@ -1,10 +1,11 @@
 import numpy as np
+import time
 from torch_geometric.data.lightning import LightningDataset
 from torch.utils.data import Dataset, Subset
 from hydra.utils import get_class
 
 
-def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
+def get_dataset(cfg, logger, transform=None, test_transform=None, pre_transform=None):
     if test_transform is None:
         test_transform = transform
     cls_name = get_class(cfg.dataset.cls_name)
@@ -13,6 +14,8 @@ def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
         "num_workers": cfg.training.num_workers,
         "pin_memory": cfg.training.pin_memory,
     }
+    logger.info("Start Pre-Transform")
+    start = time.time()
     if cfg.dataset.name == "zinc":
         dataset = LightningDataset(
             cls_name(
@@ -38,6 +41,8 @@ def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
             ),
             **kwargs,
         )
+        end = time.time()
+        logger.info("Pre-Transform Took " + str(round(end - start)) + " seconds")
         return dataset
     elif cfg.dataset.name in ["CIFAR10", "MNIST", "PATTERN", "CLUSTER"] + [
         "PascalVOC-SP",
@@ -70,6 +75,8 @@ def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
             ),
             **kwargs,
         )
+        end = time.time()
+        logger.info("Pre-Transform Took " + str(round(end - start)) + " seconds")
         return dataset
     elif "ogbg" in cfg.dataset.name:
         dataset = cls_name(
@@ -86,6 +93,8 @@ def get_dataset(cfg, transform=None, test_transform=None, pre_transform=None):
             MySubset(Subset(dataset, split_idx["test"]), transform=test_transform),
             **kwargs,
         )
+        end = time.time()
+        logger.info("Pre-Transform Took " + str(round(end - start)) + " seconds")
         return dataset
     else:
         raise NotImplementedError

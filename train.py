@@ -1,4 +1,3 @@
-import os
 import logging
 import hydra
 from pyprojroot import here
@@ -34,10 +33,11 @@ def main(cfg):
 
     # transformation which is implicitly applied on every access of the data
     preprocessor = Preprocessor(cfg.dataset.name)
-    # explicitly applied when loading the dataset (e.g., graph coloring)
+    # explicitly applied when downloading the dataset (e.g., graph coloring)
     nx_analysis = NetworkAnalysis()
     dataset = get_dataset(
         cfg,
+        log,
         transform=preprocessor,
         test_transform=preprocessor,
         pre_transform=nx_analysis,
