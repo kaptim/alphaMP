@@ -1,11 +1,11 @@
 # @package _global_
-model: # each experiment needs a default model to start running (model would be adapted after the start)
+model:
   name: mpnn
   num_layers: 3
   hidden_size: 80
   local_mp_type: gin
   global_mp_type: None
-  alpha: 1.0
+  alpha: 0.95
   alpha_eval_flag: a
   recurrent: False
-  lr: 0.002
+  use_coloring: False
