@@ -38,6 +38,9 @@ class Mpnn(torch.nn.Module):
         # alpha values in [alpha-centrality_range, alpha], 0 => no centrality used
         self.centrality_range = centrality_range
         self.num_layers = num_layers
+        # change in_edge_dim for dummy attributes
+        if not in_edge_dim:
+            in_edge_dim = 1
 
         self.feature_encoder = FeatureEncoder(
             hidden_size=hidden_size,

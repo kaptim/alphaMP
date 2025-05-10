@@ -57,6 +57,11 @@ class Preprocessor(object):
         if self.dataset == "ogbg-code2":
             data = self.transform(data)
             data.node_depth = data.node_depth.squeeze(-1)
+        if not data.edge_attr:
+            # insert dummy values in case there are no edge attributes
+            data.edge_attr = torch.full(
+                (data.edge_index.shape[1], 1), fill_value=1, dtype=data.x.dtype
+            ).to(device=data.x.device)
         return data
 
 
