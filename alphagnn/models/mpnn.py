@@ -39,7 +39,7 @@ class Mpnn(torch.nn.Module):
         self.centrality_range = centrality_range
         self.num_layers = num_layers
         # change in_edge_dim for dummy attributes
-        if not in_edge_dim:
+        if in_edge_dim is None:
             in_edge_dim = 1
 
         self.feature_encoder = FeatureEncoder(
