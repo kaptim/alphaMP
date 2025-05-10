@@ -68,8 +68,7 @@ class Preprocessor(object):
 class NetworkAnalysis(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
-        # TODO: test with directed dataset, e.g., MNIST, CIFAR10
-        g = to_networkx(data, to_undirected=not data.is_directed())
+        g = to_networkx(data, to_undirected=True)
         self.get_coloring(g, data)
         self.get_centrality(g, data)
         return data
