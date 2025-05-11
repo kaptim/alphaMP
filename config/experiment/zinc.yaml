@@ -1,9 +1,9 @@
 # @package _global_
 defaults:
-  - model: mpnn
+  - model: mpnn-zinc
 
 training:
-  lr: ${model.lr}
+  lr: 0.002
   epochs: 500
   warmup: 50
   weight_decay: 0.0

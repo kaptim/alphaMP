@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - model: mpnn
+  - model: mpnn-pascalvoc
 
 training:
   lr: 0.002
