@@ -1,9 +1,9 @@
 ### Custom Directories ###
-config/dataset/zinc.yaml
-tests
+alphagnn/tests
 logs*
-wandb
-scripts
+wandb*
+alphagnn/scripts
+GRIT-main
 plots
 datasets
 test
@@ -12,6 +12,7 @@ outputs
 tmp
 node_classification/data
 node_classification/models
+graphgps.bak
 
 ### CUDA ###
 *.i
