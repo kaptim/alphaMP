@@ -73,11 +73,13 @@ def get_centrality_data() -> None:
     existing_files = os.listdir(DATA_FOLDER)
     for dataset, path in paths_dict.items():
         if dataset + ".npy" not in existing_files:
-            centrality_data = []
-            # last item is the type (Data)
-            for graph in torch.load(path, weights_only=True)[:-1]:
-                centrality_data += graph["centrality"].tolist()
-            np.save(DATA_FOLDER + "/" + dataset, np.asarray(centrality_data))
+            # data saved as a tuple, seems as if the useful data is in the first element
+            np.save(
+                DATA_FOLDER + "/" + dataset,
+                np.asarray(
+                    torch.load(path, weights_only=False)[0]["centrality"].tolist()
+                ),
+            )
 
 
 def main():

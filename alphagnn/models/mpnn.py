@@ -137,6 +137,7 @@ class Mpnn(torch.nn.Module):
         # return mask for the batch based on self.alpha and self.centrality_range
         # training: alpha is used as the probability for a bernoulli distribution
         # inference: depends on self.alpha_eval_flag
+        print(batch.centrality.max())
         alphas = torch.full(
             (batch.x.shape[0], 1), fill_value=self.alpha - self.centrality_range
         ).to(device=batch.x.device)

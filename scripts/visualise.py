@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+from pathlib import Path
+import numpy as np
 import pandas as pd
 import os
 
@@ -14,7 +16,13 @@ def get_data_csv_path():
     if len(csvs) > 1:
         raise ValueError("Only one .csv file allowed in the /scripts folder")
 
-    return DATA_FOLDER + "\\" + csvs[0]
+    return DATA_FOLDER + "/" + csvs[0]
+
+
+def get_centrality_paths():
+    files = os.listdir(DATA_FOLDER)
+    npys = [DATA_FOLDER + "/" + f for f in files if f.endswith(".npy")]
+    return npys
 
 
 def plot_score_boxplot(
@@ -89,7 +97,8 @@ def plot_score_boxplot(
         + "_"
         + str(num_layers)
         + "_"
-        + ("drop" if df_plot["model.dropout"].min() > 0 else "")
+        + ("drop" if df_plot["model.dropout"].min() > 0 else ""),
+        bbox="tight",
     )
     plt.close()
 
@@ -140,7 +149,7 @@ def plot_molhiv_dropout(raw_data):
             )
 
 
-def main():
+def plot_results():
     # keep those columns which one needs for plotting
     relevant_cols = [
         "model.name",
@@ -175,6 +184,34 @@ def main():
     plot_molhiv(raw_data)
     plot_molhiv_colored(raw_data)
     plot_molhiv_dropout(raw_data)
+
+
+def plot_centrality():
+    paths = get_centrality_paths()
+    for path in paths:
+        dataset = Path(path).stem.lower()
+        centrality_data = np.load(path)
+
+        plt.style.use("bmh")
+        plt.hist(centrality_data, bins=200, color="blue", alpha=0.7)
+        plt.title(f"Centrality Histogram for {dataset}")
+        plt.xlabel("Centrality")
+        plt.ylabel("Frequency")
+
+        plot_filename = os.path.join(
+            PLOT_FOLDER,
+            f"{dataset}_centrality_histogram",
+        )
+        plt.savefig(
+            plot_filename,
+            bbox_inches="tight",
+        )
+        plt.close()
+
+
+def main():
+    plot_results()
+    # plot_centrality()
 
 
 if __name__ == "__main__":
