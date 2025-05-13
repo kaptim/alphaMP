@@ -28,7 +28,7 @@ training:
   lr_schedule: cosine
   weight_decay: 0.0
   warmup: 10
-  num_workers: 4
+  num_workers: 1
   pin_memory: true
 
 model:
