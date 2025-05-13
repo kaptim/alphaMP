@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-DATA_FOLDER = r"C:\python_code\eth\thesis\code\scripts"
+DATA_FOLDER = r"C:\python_code\eth\thesis\code\scripts\plot_data"
 PLOT_FOLDER = r"C:\python_code\eth\thesis\code\plots"
 
 
@@ -36,7 +36,6 @@ def plot_score_boxplot(
         & (raw_data["model.alpha"] >= alpha_th)
         & (raw_data["model.alpha_eval_flag"] == alpha_flag)
         & (raw_data["model.use_coloring"] == use_coloring)
-        # TODO: also include NA / fillna in get_wandb
     ]
     # only take the runs with the maximum number of epochs present in the data
     # (for a fair comparison of the best runs)

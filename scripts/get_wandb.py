@@ -6,7 +6,7 @@ import os
 
 PROJECT = "tkrappel-eth-zurich/async_gnn"
 # where to save the final .csv (will overwrite any existing .csv)
-DIRECTORY = r"C:\python_code\eth\thesis\code\scripts"
+DIRECTORY = r"C:\python_code\eth\thesis\code\scripts\plot_data"
 
 
 def get_wandb_lists():
@@ -88,12 +88,16 @@ def get_aligned_config_list(config: list):
     # TODO: remove for final submission (should no longer be necessary)
     recurrent_col = "model.recurrent"
     lr_col = "model.lr"
+    coloring_col = "model.use_coloring"
     csv_flag_col = "logs.csv_flag"
     wandb_name_col = "logs.wandb_name"
     for c in config:
         if recurrent_col not in c.keys():
             # recurrent not in keys => non-recurrent architecture
             c[recurrent_col] = False
+        if coloring_col not in c.keys():
+            # coloring not in keys => non-coloring architecture
+            c[coloring_col] = False
         if lr_col not in c.keys():
             c[lr_col] = c["training.lr"]
         if csv_flag_col not in c.keys():
@@ -133,7 +137,7 @@ def save_dict_list_to_csv(dict_list: list):
     # Construct the full file path
     file_path = os.path.join(DIRECTORY, file_name)
 
-    # Check if a csv starting with file_prefix exists, remove if necessary
+    # Check if a file starting with file_prefix exists, remove if necessary
     for f_name in os.listdir(DIRECTORY):
         if f_name.startswith(file_prefix):
             os.remove(DIRECTORY + "/" + f_name)

@@ -2,7 +2,7 @@
 alphagnn/tests
 logs*
 wandb*
-alphagnn/scripts
+scripts/plot_data
 GRIT-main
 plots
 datasets
