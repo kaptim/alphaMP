@@ -27,50 +27,61 @@ def get_centrality_paths():
 
 def plot_score_boxplot(
     raw_data: pd.DataFrame,
-    num_layers=3,
-    local_mp="gin",
     dataset="zinc",
-    recurrent=False,
-    use_coloring=False,
     alpha_th=0.9,
-    alpha_flag="a",
     plot_col="test_score",
+    **kwargs,  # num_layers, local_mp_type, recurrent, use_coloring, alpha_eval_flag
 ):
-    df_plot = raw_data[
-        (raw_data["model.num_layers"] == num_layers)
-        & (raw_data["model.local_mp_type"] == local_mp)
-        & (raw_data["dataset.name"] == dataset)
-        & (raw_data["model.recurrent"] == recurrent)
-        & (raw_data["model.alpha"] >= alpha_th)
-        & (raw_data["model.alpha_eval_flag"] == alpha_flag)
-        & (raw_data["model.use_coloring"] == use_coloring)
+    df_dataset = raw_data[
+        (raw_data["dataset.name"] == dataset) & (raw_data["model.alpha"] >= alpha_th)
     ]
+    # if no value is set, simply take the value which occurs most often
+    filter_cols = {
+        col: kwargs.get(col.split(".")[-1], df_dataset[col].mode().iloc[0])
+        for col in [
+            "model.num_layers",
+            "model.local_mp_type",
+            "model.recurrent",
+            "model.use_coloring",
+            "model.alpha_eval_flag",
+        ]
+    }
+
+    query_str = " & ".join(
+        [
+            " == ".join(
+                ["`" + col + "`", ('"' + val + '"' if type(val) == str else str(val))]
+            )
+            for col, val in filter_cols.items()
+        ]
+    )
+    df_plot = df_dataset.query(query_str)
+
     # only take the runs with the maximum number of epochs present in the data
     # (for a fair comparison of the best runs)
     df_plot = df_plot[df_plot["training.epochs"] == df_plot["training.epochs"].max()]
-    # list of relevant alphas
-    alphas = sorted(df_plot.loc[:, "model.alpha"].unique().tolist())
-    # only select alpha evaluation flag
-    df_plot_a = df_plot[df_plot["model.alpha_eval_flag"] == alpha_flag].pivot(
-        columns="model.alpha", values=plot_col
-    )
+    if df_plot.empty:
+        return None
     # create a list of numpy arrays (necessary for boxplot plotting)
-    df_plot_a_list_np = [df_plot_a.loc[:, a].dropna().to_numpy() for a in alphas]
+    df_plot_arr_list = {
+        key: group[plot_col].to_numpy()
+        for key, group in df_plot.groupby(by="model.alpha")
+    }
 
     plt.boxplot(
-        df_plot_a_list_np,
-        positions=[i for i in range(df_plot_a.shape[1])],
-        tick_labels=df_plot_a.columns.tolist(),
+        list(df_plot_arr_list.values()),
+        positions=[i for i in range(len(df_plot_arr_list))],
+        tick_labels=list(df_plot_arr_list.keys()),
     )
     plt.title(
         dataset
         + ", "
         + plot_col
         + ", "
-        + local_mp
+        + filter_cols["model.local_mp_type"]
         + ", "
-        + str(num_layers)
-        + " layers, lr[1.0] = 0.002 else 0.004"
+        + str(filter_cols["model.num_layers"])
+        + " layers"
     )
     plt.xlabel("Alpha")
     metric_col = (
@@ -89,64 +100,18 @@ def plot_score_boxplot(
         + "_"
         + plot_col
         + "_"
-        + local_mp
+        + filter_cols["model.local_mp_type"]
         + "_"
-        + alpha_flag
+        + filter_cols["model.alpha_eval_flag"]
         + "_"
-        + ("colored" if use_coloring else "")
+        + ("colored" if filter_cols["model.use_coloring"] else "")
         + "_"
-        + str(num_layers)
+        + str(filter_cols["model.num_layers"])
         + "_"
         + ("drop" if df_plot["model.dropout"].min() > 0 else ""),
-        bbox="tight",
+        bbox_inches="tight",
     )
     plt.close()
-
-
-def plot_zinc(raw_data):
-    for col in ["test_score", "val_score", "train_loss"]:
-        for alpha in ["a"]:
-            plot_score_boxplot(raw_data, plot_col=col, alpha_flag=alpha, dataset="zinc")
-
-
-def plot_molhiv(raw_data):
-    # with + without dropout? coloring?
-    raw_data_no_dropout = raw_data[raw_data["model.dropout"] == 0.0]
-    for col in ["test_score", "val_score", "train_loss"]:
-        for alpha in ["a"]:
-            plot_score_boxplot(
-                raw_data_no_dropout,
-                plot_col=col,
-                alpha_flag=alpha,
-                dataset="ogbg-molhiv",
-            )
-
-
-def plot_molhiv_colored(raw_data):
-    # with + without dropout? coloring?
-    raw_data_no_dropout = raw_data[raw_data["model.dropout"] == 0.0]
-    for col in ["test_score", "val_score", "train_loss"]:
-        for alpha in ["a"]:
-            plot_score_boxplot(
-                raw_data_no_dropout,
-                plot_col=col,
-                alpha_flag=alpha,
-                dataset="ogbg-molhiv",
-                use_coloring=True,
-            )
-
-
-def plot_molhiv_dropout(raw_data):
-    # with + without dropout? coloring?
-    raw_data_dropout = raw_data[raw_data["model.dropout"] != 0.0]
-    for col in ["test_score", "val_score", "train_loss"]:
-        for alpha in ["a"]:
-            plot_score_boxplot(
-                raw_data_dropout,
-                plot_col=col,
-                alpha_flag=alpha,
-                dataset="ogbg-molhiv",
-            )
 
 
 def plot_results():
@@ -180,10 +145,13 @@ def plot_results():
     raw_data = pd.read_csv(get_data_csv_path()).loc[:, relevant_cols]
 
     # plot
-    plot_zinc(raw_data)
-    plot_molhiv(raw_data)
-    plot_molhiv_colored(raw_data)
-    plot_molhiv_dropout(raw_data)
+    datasets = list(raw_data["dataset.name"].unique())
+    for dataset in datasets:
+        for col in ["test_score", "val_score", "train_loss"]:
+            if dataset == "zinc":
+                plot_score_boxplot(raw_data, local_mp="gin", num_layers=3, plot_col=col)
+            else:
+                plot_score_boxplot(raw_data, plot_col=col)
 
 
 def plot_centrality():
