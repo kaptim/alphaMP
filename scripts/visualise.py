@@ -149,9 +149,11 @@ def plot_results():
     for dataset in datasets:
         for col in ["test_score", "val_score", "train_loss"]:
             if dataset == "zinc":
-                plot_score_boxplot(raw_data, local_mp="gin", num_layers=3, plot_col=col)
+                plot_score_boxplot(
+                    raw_data, dataset, local_mp="gin", num_layers=3, plot_col=col
+                )
             else:
-                plot_score_boxplot(raw_data, plot_col=col)
+                plot_score_boxplot(raw_data, dataset, plot_col=col)
 
 
 def plot_centrality():
