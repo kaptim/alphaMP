@@ -1,3 +1,4 @@
+import os
 import logging
 import hydra
 from pyprojroot import here
@@ -69,13 +70,17 @@ def main(cfg):
                 [
                     pl.loggers.CSVLogger(cfg.logs.path, name="csv_logs"),
                     pl.loggers.WandbLogger(
-                        name=cfg.logs.wandb_name, project="async_gnn"
+                        name=cfg.logs.wandb_name,
+                        project="async_gnn",
+                        dir=os.environ.get("WANDB_DIR", "./wandb"),
                     ),
                 ]
                 if cfg.logs.csv_flag
                 else [
                     pl.loggers.WandbLogger(
-                        name=cfg.logs.wandb_name, project="async_gnn"
+                        name=cfg.logs.wandb_name,
+                        project="async_gnn",
+                        dir=os.environ.get("WANDB_DIR", "./wandb"),
                     ),
                 ]
             )
