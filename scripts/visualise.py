@@ -46,7 +46,6 @@ def plot_score_boxplot(
             "model.alpha_eval_flag",
         ]
     }
-
     query_str = " & ".join(
         [
             " == ".join(
@@ -157,10 +156,16 @@ def plot_results():
             for col in ["test_score", "val_score", "train_loss"]:
                 if dataset == "zinc":
                     plot_score_boxplot(
-                        raw_data, dataset, local_mp=model, num_layers=3, plot_col=col
+                        raw_data,
+                        dataset,
+                        local_mp_type=model,
+                        num_layers=3,
+                        plot_col=col,
                     )
                 else:
-                    plot_score_boxplot(raw_data, dataset, local_mp=model, plot_col=col)
+                    plot_score_boxplot(
+                        raw_data, dataset, local_mp_type=model, plot_col=col
+                    )
 
 
 def plot_centrality():
