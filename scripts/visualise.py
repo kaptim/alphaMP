@@ -144,16 +144,23 @@ def plot_results():
     ]
     raw_data = pd.read_csv(get_data_csv_path()).loc[:, relevant_cols]
 
-    # plot
+    # plot for each dataset
     datasets = list(raw_data["dataset.name"].unique())
     for dataset in datasets:
-        for col in ["test_score", "val_score", "train_loss"]:
-            if dataset == "zinc":
-                plot_score_boxplot(
-                    raw_data, dataset, local_mp="gin", num_layers=3, plot_col=col
-                )
-            else:
-                plot_score_boxplot(raw_data, dataset, plot_col=col)
+        dataset_models = list(
+            raw_data[raw_data["dataset.name"] == dataset][
+                "model.local_mp_type"
+            ].unique()
+        )
+        # different plot per GNN model used
+        for model in dataset_models:
+            for col in ["test_score", "val_score", "train_loss"]:
+                if dataset == "zinc":
+                    plot_score_boxplot(
+                        raw_data, dataset, local_mp=model, num_layers=3, plot_col=col
+                    )
+                else:
+                    plot_score_boxplot(raw_data, dataset, local_mp=model, plot_col=col)
 
 
 def plot_centrality():

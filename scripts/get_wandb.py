@@ -45,7 +45,7 @@ def get_num_keys(d: dict):
     return num_keys
 
 
-def get_flattened_dict_list(d: dict):
+def get_flattened_dict_list(d: list):
     # some values of d are dictionaries themselves
     # add those k, v pairs to the parent dictionary with new names
     # remove the old dictionary
