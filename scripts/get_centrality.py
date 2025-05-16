@@ -8,7 +8,7 @@ DATASETS_FOLDER = Path(__file__).parent.parent / "datasets"
 DATA_FOLDER = Path(__file__).parent / "plot_data"
 
 
-def get_train_file(path: str) -> str:
+def get_train_file(path):
     # find the file which is most likely to contain the train data
     files = os.listdir(path)
     filtered_files = [
@@ -19,13 +19,13 @@ def get_train_file(path: str) -> str:
 
     if len(filtered_files) != 1:
         raise ValueError(
-            f"Expected exactly one file after filtering, but found {len(filtered_files)}: {filtered_files}"
+                "Expected exactly one file after filtering, but found {}".format(len(filtered_files))
         )
 
     return filtered_files[0]
 
 
-def get_path_dataset(dataset: str) -> str:
+def get_path_dataset(dataset):
     # for a specific dataset, return the train data path
     subfolders = os.listdir(DATASETS_FOLDER / dataset)
     train_data_path = None
@@ -44,7 +44,7 @@ def get_path_dataset(dataset: str) -> str:
     return train_data_path
 
 
-def get_train_datasets_paths() -> dict:
+def get_train_datasets_paths():
     # go through all datasets, collect paths to the train data
     datasets = os.listdir(DATASETS_FOLDER)
     data_to_plot = {dataset: None for dataset in datasets}
@@ -64,7 +64,7 @@ def get_train_datasets_paths() -> dict:
     return data_to_plot
 
 
-def get_centrality_data() -> None:
+def get_centrality_data():
     # extract centrality data from train datasets, save as .csv
     paths_dict = get_train_datasets_paths()
     existing_files = os.listdir(DATA_FOLDER)
