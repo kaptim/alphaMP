@@ -3,8 +3,9 @@ from pathlib import Path
 import os
 import torch
 
-DATASETS_FOLDER = r"C:\python_code\eth\thesis\code\datasets"
-DATA_FOLDER = r"C:\python_code\eth\thesis\code\scripts\plot_data"
+
+DATASETS_FOLDER = Path(__file__).parent.parent / "datasets"
+DATA_FOLDER = Path(__file__).parent / "plot_data"
 
 
 def get_train_file(path: str) -> str:
@@ -26,24 +27,20 @@ def get_train_file(path: str) -> str:
 
 def get_path_dataset(dataset: str) -> str:
     # for a specific dataset, return the train data path
-    subfolders = os.listdir(DATASETS_FOLDER + "/" + dataset)
+    subfolders = os.listdir(DATASETS_FOLDER / dataset)
     train_data_path = None
     if "processed" not in subfolders:
         # may be hidden in a level below subfolders
         for subfolder in subfolders:
-            sub_subfolders = os.listdir(
-                DATASETS_FOLDER + "/" + dataset + "/" + subfolder
-            )
+            sub_subfolders = os.listdir(DATASETS_FOLDER / dataset / subfolder)
             if "processed" in sub_subfolders:
                 if train_data_path is not None:
                     print("WARNING: duplicate processed folders for " + subfolder)
-                train_folder = (
-                    DATASETS_FOLDER + "/" + dataset + "/" + subfolder + "/processed/"
-                )
-                train_data_path = train_folder + get_train_file(train_folder)
+                train_folder = DATASETS_FOLDER / dataset / subfolder / "processed"
+                train_data_path = train_folder / get_train_file(train_folder)
     else:
-        train_folder = DATASETS_FOLDER + "/" + dataset + "/processed/"
-        train_data_path = train_folder + get_train_file(train_folder)
+        train_folder = DATASETS_FOLDER / dataset / "processed"
+        train_data_path = train_folder / get_train_file(train_folder)
     return train_data_path
 
 
@@ -53,7 +50,7 @@ def get_train_datasets_paths() -> dict:
     data_to_plot = {dataset: None for dataset in datasets}
     for dataset in datasets:
         if dataset == "OGBGDataset":
-            subfolders = os.listdir(DATASETS_FOLDER + "/" + dataset)
+            subfolders = os.listdir(DATASETS_FOLDER / dataset)
             # subfolders containing one different dataset each => remove parent folder key
             del data_to_plot[dataset]
             for subfolder in subfolders:
@@ -73,9 +70,10 @@ def get_centrality_data() -> None:
     existing_files = os.listdir(DATA_FOLDER)
     for dataset, path in paths_dict.items():
         if dataset + ".npy" not in existing_files:
+            print("Processing: " + dataset)
             # data saved as a tuple, seems as if the useful data is in the first element
             np.save(
-                DATA_FOLDER + "/" + dataset,
+                DATA_FOLDER / dataset,
                 np.asarray(
                     torch.load(path, weights_only=False)[0]["centrality"].tolist()
                 ),
