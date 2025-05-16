@@ -1,25 +1,27 @@
 import numpy as np
-from pathlib import Path
 import os
 import torch
 
 
-DATASETS_FOLDER = Path(__file__).parent.parent / "datasets"
-DATA_FOLDER = Path(__file__).parent / "plot_data"
+DATASETS_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "datasets")
+DATA_FOLDER = os.path.join(os.path.dirname(__file__), "plot_data")
 
 
-def get_train_file(path):
+def get_train_file(train_folder):
     # find the file which is most likely to contain the train data
-    files = os.listdir(path)
+    files = os.listdir(train_folder)
     filtered_files = [
         file
         for file in files
-        if Path(file).stem.startswith("train") or Path(file).stem.endswith("processed")
+        if os.path.basename(file).split(".")[0].startswith("train")
+        or os.path.basename(file).split(".")[0].endswith("processed")
     ]
 
     if len(filtered_files) != 1:
         raise ValueError(
-                "Expected exactly one file after filtering, but found {}".format(len(filtered_files))
+            "Expected exactly one file after filtering, but found {}".format(
+                len(filtered_files)
+            )
         )
 
     return filtered_files[0]
@@ -27,20 +29,24 @@ def get_train_file(path):
 
 def get_path_dataset(dataset):
     # for a specific dataset, return the train data path
-    subfolders = os.listdir(DATASETS_FOLDER / dataset)
+    subfolders = os.listdir(DATASETS_FOLDER + "/" + dataset)
     train_data_path = None
     if "processed" not in subfolders:
         # may be hidden in a level below subfolders
         for subfolder in subfolders:
-            sub_subfolders = os.listdir(DATASETS_FOLDER / dataset / subfolder)
+            sub_subfolders = os.listdir(
+                DATASETS_FOLDER + "/" + dataset + "/" + subfolder
+            )
             if "processed" in sub_subfolders:
                 if train_data_path is not None:
                     print("WARNING: duplicate processed folders for " + subfolder)
-                train_folder = DATASETS_FOLDER / dataset / subfolder / "processed"
-                train_data_path = train_folder / get_train_file(train_folder)
+                train_folder = (
+                    DATASETS_FOLDER + "/" + dataset + "/" + subfolder + "/processed/"
+                )
+                train_data_path = train_folder + get_train_file(train_folder)
     else:
-        train_folder = DATASETS_FOLDER / dataset / "processed"
-        train_data_path = train_folder / get_train_file(train_folder)
+        train_folder = DATASETS_FOLDER + "/" + dataset + "/processed/"
+        train_data_path = train_folder + get_train_file(train_folder)
     return train_data_path
 
 
@@ -50,7 +56,7 @@ def get_train_datasets_paths():
     data_to_plot = {dataset: None for dataset in datasets}
     for dataset in datasets:
         if dataset == "OGBGDataset":
-            subfolders = os.listdir(DATASETS_FOLDER / dataset)
+            subfolders = os.listdir(DATASETS_FOLDER + "/" + dataset)
             # subfolders containing one different dataset each => remove parent folder key
             del data_to_plot[dataset]
             for subfolder in subfolders:
@@ -73,7 +79,7 @@ def get_centrality_data():
             print("Processing: " + dataset)
             # data saved as a tuple, seems as if the useful data is in the first element
             np.save(
-                DATA_FOLDER / dataset,
+                DATA_FOLDER + "/" + dataset,
                 np.asarray(
                     torch.load(path, weights_only=False)[0]["centrality"].tolist()
                 ),

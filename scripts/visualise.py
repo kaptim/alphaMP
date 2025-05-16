@@ -4,10 +4,8 @@ import numpy as np
 import pandas as pd
 import os
 
-DATA_FOLDER = (
-    Path(__file__).parent / "plot_data"
-)  # / creates a path combining a path and a string
-PLOT_FOLDER = Path(__file__).parent.parent / "plots"
+PLOT_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plots")
+DATA_FOLDER = os.path.join(os.path.dirname(__file__), "plot_data")
 
 
 def get_data_csv_path():
@@ -23,7 +21,7 @@ def get_data_csv_path():
 
 def get_centrality_paths():
     files = os.listdir(DATA_FOLDER)
-    npys = [DATA_FOLDER / f for f in files if f.endswith(".npy")]
+    npys = [DATA_FOLDER + "/" + f for f in files if f.endswith(".npy")]
     return npys
 
 
