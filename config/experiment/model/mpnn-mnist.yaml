@@ -8,5 +8,4 @@ model:
   alpha: 1.0
   alpha_eval_flag: a
   recurrent: False
-  use_coloring: False
-  centrality_range: 0.1
+  use_coloring: True
