@@ -28,6 +28,7 @@ class Mpnn(torch.nn.Module):
     ):
         super().__init__()
         self.pad_idx = pad_idx
+        self.num_layers = num_layers
         self.alpha = alpha
         # inference: a: use alpha values, p: bernoulli (as in training), n: nothing
         self.alpha_eval_flag = alpha_eval_flag
@@ -35,9 +36,11 @@ class Mpnn(torch.nn.Module):
         self.recurrent = recurrent
         # use coloring to update iteratively
         self.use_coloring = use_coloring
-        # alpha values in [alpha-centrality_range, alpha], 0 => no centrality used
+        # alpha values in [alpha-centrality_range, alpha]; 0 => no centrality used
         self.centrality_range = centrality_range
-        self.num_layers = num_layers
+        # set up running centrality min, max for min-max normalisation
+        self.min_running = 1
+        self.max_running = 0
         # change in_edge_dim for dummy attributes
         if in_edge_dim is None:
             in_edge_dim = 1
@@ -137,15 +140,23 @@ class Mpnn(torch.nn.Module):
         # return mask for the batch based on self.alpha and self.centrality_range
         # training: alpha is used as the probability for a bernoulli distribution
         # inference: depends on self.alpha_eval_flag
+        if self.alpha > 1.0 or self.alpha < 0:
+            raise RuntimeError(f"Alpha value should be in [0,1]")
+        if self.centrality_range > self.alpha or self.centrality_range < 0:
+            raise RuntimeError(f"Centrality range value should be in [0,alpha]")
+        # update running min, max
+        if batch.centrality.max() > self.max_running:
+            self.max_running = batch.centrality.max()
+        if batch.centrality.min() < self.min_running:
+            self.min_running = batch.centrality.min()
         alphas = torch.full(
             (batch.x.shape[0], 1), fill_value=self.alpha - self.centrality_range
         ).to(device=batch.x.device)
-        if alphas.max() + self.centrality_range * batch.centrality.max() > 1:
-            raise RuntimeError(
-                f"Alpha value too high: {self.alpha + self.centrality_range * batch.centrality.max()}"
-            )
-        # adapt alphas using the centrality information of the nodes
-        alphas += batch.centrality.unsqueeze(-1) * self.centrality_range
+        # adapt alphas using the normalised centrality information of the nodes
+        alphas += (
+            (batch.centrality - self.min_running)
+            / (self.max_running - self.min_running)
+        ).unsqueeze(-1) * self.centrality_range
         if self.training:
             return torch.bernoulli(alphas).int()
         else:

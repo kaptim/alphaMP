@@ -3,9 +3,10 @@ model:
   name: mpnn
   num_layers: 16
   hidden_size: 32
-  local_mp_type: gcn
+  local_mp_type: gin
   global_mp_type: None
-  alpha: 0.95
+  alpha: 1.0
   alpha_eval_flag: a
   recurrent: False
   use_coloring: False
+  centrality_range: 0.2
