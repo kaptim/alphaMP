@@ -4,6 +4,7 @@ logs*
 wandb*
 GRIT-main
 scripts/plot_data
+plots
 datasets
 test
 cache

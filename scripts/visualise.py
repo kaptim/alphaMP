@@ -192,8 +192,8 @@ def plot_centrality():
 
 
 def main():
-    # plot_results()
-    plot_centrality()
+    plot_results()
+    # plot_centrality()
 
 
 if __name__ == "__main__":
