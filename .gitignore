@@ -3,6 +3,7 @@ alphagnn/tests
 logs*
 wandb*
 GRIT-main
+scripts/plot_data
 datasets
 test
 cache
