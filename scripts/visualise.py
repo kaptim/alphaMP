@@ -25,46 +25,54 @@ def get_centrality_paths():
     return npys
 
 
+def get_str_key(key):
+    # simply function to make the x axis labels of each boxplot
+    # more readable
+    return (
+        key[0].astype(str)
+        + key[1]
+        + "\n"
+        + ("lr:" + key[2].astype(str) + "\n")
+        + ("-r" if key[3] else "")
+        + ("-co" if key[4] else "")
+        + ("-ce:" + key[5].astype(str) if key[5] else "")
+        + ("-d:" + key[6].astype(str) if key[6] else "")
+    )
+
+
 def plot_score_boxplot(
     raw_data: pd.DataFrame,
-    dataset="zinc",
-    alpha_th=0.9,
-    plot_col="test_score",
-    **kwargs,  # num_layers, local_mp_type, recurrent, use_coloring, alpha_eval_flag
+    dataset,
+    local_mp_type,
+    num_layers,
+    plot_col,
+    alpha_th=0.9,  # lower alpha values would lead to large differences and a less useful plot
 ):
-    df_dataset = raw_data[
-        (raw_data["dataset.name"] == dataset) & (raw_data["model.alpha"] >= alpha_th)
+    df_plot = raw_data[
+        (raw_data["dataset.name"] == dataset)
+        & (raw_data["model.local_mp_type"] == local_mp_type)
+        & (raw_data["model.num_layers"] == num_layers)
+        & (raw_data["model.alpha"] >= alpha_th)
     ]
-    # if no value is set, simply take the value which occurs most often
-    filter_cols = {
-        col: kwargs.get(col.split(".")[-1], df_dataset[col].mode().iloc[0])
-        for col in [
-            "model.num_layers",
-            "model.local_mp_type",
-            "model.recurrent",
-            "model.use_coloring",
-            "model.alpha_eval_flag",
-        ]
-    }
-    query_str = " & ".join(
-        [
-            " == ".join(
-                ["`" + col + "`", ('"' + val + '"' if type(val) == str else str(val))]
-            )
-            for col, val in filter_cols.items()
-        ]
-    )
-    df_plot = df_dataset.query(query_str)
 
     # only take the runs with the maximum number of epochs present in the data
     # (for a fair comparison of the best runs)
     df_plot = df_plot[df_plot["training.epochs"] == df_plot["training.epochs"].max()]
-    if df_plot.empty:
-        return None
+
     # create a list of numpy arrays (necessary for boxplot plotting)
     df_plot_arr_list = {
-        key: group[plot_col].to_numpy()
-        for key, group in df_plot.groupby(by="model.alpha")
+        get_str_key(key): group[plot_col].to_numpy()
+        for key, group in df_plot.groupby(
+            by=[
+                "model.alpha",
+                "model.alpha_eval_flag",
+                "model.lr",
+                "model.recurrent",
+                "model.use_coloring",
+                "model.centrality_range",
+                "model.dropout",
+            ]  # DO NOT change this ordering (may get weird axis labels) (get_str_key depends on it)
+        )
     }
 
     plt.boxplot(
@@ -75,14 +83,15 @@ def plot_score_boxplot(
     plt.title(
         dataset
         + ", "
-        + plot_col
+        + local_mp_type
         + ", "
-        + filter_cols["model.local_mp_type"]
-        + ", "
-        + str(filter_cols["model.num_layers"])
+        + str(num_layers)
         + " layers"
+        + ", "
+        + plot_col
     )
-    plt.xlabel("Alpha")
+    plt.xticks(size=10 - len(df_plot_arr_list) / 5)
+    plt.xlabel("Experiments")
     metric_col = (
         "dataset.metric"
         if plot_col.split("_")[-1] == "score"
@@ -97,18 +106,13 @@ def plot_score_boxplot(
         + "/"
         + dataset
         + "_"
-        + plot_col
+        + local_mp_type
         + "_"
-        + filter_cols["model.local_mp_type"]
+        + str(num_layers)
         + "_"
-        + filter_cols["model.alpha_eval_flag"]
-        + "_"
-        + ("colored" if filter_cols["model.use_coloring"] else "")
-        + "_"
-        + str(filter_cols["model.num_layers"])
-        + "_"
-        + ("drop" if df_plot["model.dropout"].min() > 0 else ""),
+        + plot_col,
         bbox_inches="tight",
+        dpi=300,
     )
     plt.close()
 
@@ -130,6 +134,7 @@ def plot_results():
         "model.alpha_eval_flag",
         "model.recurrent",
         "model.use_coloring",
+        "model.centrality_range",
         "model.lr",
         "dataset.name",
         "dataset.loss",
@@ -151,20 +156,22 @@ def plot_results():
                 "model.local_mp_type"
             ].unique()
         )
-        # different plot per GNN model used
+        # different plot per GNN model x number of layers
         for model in dataset_models:
-            for col in ["test_score", "val_score", "train_loss"]:
-                if dataset == "zinc":
+            nums_layers = list(
+                raw_data[
+                    (raw_data["dataset.name"] == dataset)
+                    & (raw_data["model.local_mp_type"] == model)
+                ]["model.num_layers"].unique()
+            )
+            for num_layers in nums_layers:
+                for col in ["test_score", "val_score", "train_loss"]:
                     plot_score_boxplot(
                         raw_data,
                         dataset,
                         local_mp_type=model,
-                        num_layers=3,
+                        num_layers=num_layers,
                         plot_col=col,
-                    )
-                else:
-                    plot_score_boxplot(
-                        raw_data, dataset, local_mp_type=model, plot_col=col
                     )
 
 

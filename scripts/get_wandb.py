@@ -85,10 +85,11 @@ def get_unpacked_config_list(config: list):
 
 def get_aligned_config_list(config: list):
     # need to combine certain columns, add others
-    # TODO: remove for final submission (should no longer be necessary)
+    # since some data may have been missing in earlier models
     recurrent_col = "model.recurrent"
     lr_col = "model.lr"
     coloring_col = "model.use_coloring"
+    centrality_col = "model.centrality_range"
     csv_flag_col = "logs.csv_flag"
     wandb_name_col = "logs.wandb_name"
     for c in config:
@@ -98,6 +99,9 @@ def get_aligned_config_list(config: list):
         if coloring_col not in c.keys():
             # coloring not in keys => non-coloring architecture
             c[coloring_col] = False
+        if centrality_col not in c.keys():
+            # centrality not in keys => does not use centrality
+            c[centrality_col] = 0
         if lr_col not in c.keys():
             c[lr_col] = c["training.lr"]
         if csv_flag_col not in c.keys():
