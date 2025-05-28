@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-# Monkey patch collections (for AttrDict)
+# TODO: change Monkey patch collections (for AttrDict) (need to find better version)
 import collections
 import collections.abc
 
