@@ -1,11 +1,11 @@
-name: neuralwalker
+name: bpes
 channels:
   - pyg
   - pytorch
   - nvidia
   - conda-forge
 dependencies:
-  - python>=3.9
+  - python=3.11
   - pip
   - numpy
   - scipy
