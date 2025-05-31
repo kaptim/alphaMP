@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 name: bpes
+=======
+name: alpha_gnn
+>>>>>>> ad298e45adf99e789498e4b3259ff21611b581ce
 channels:
   - pyg
   - pytorch
@@ -25,5 +29,4 @@ dependencies:
     - hydra-core
     - torch-scatter
     - causal-conv1d>=1.2.0
-    - mamba-ssm
     - ogb

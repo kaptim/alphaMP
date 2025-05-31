@@ -10,9 +10,9 @@ mlflow:
   name: zinc-GRIT-noPE
 wandb:
   use: True
-  project: "PEGT"
-  name: "ZINC-GRIT-noPE"
-  entity: jiaqing
+  project: async_pe
+  name: ZINC-GRIT-noPE
+  entity: tkrappel-eth-zurich
 dataset:
   format: PyG-ZINC
   name: subset
@@ -49,7 +49,7 @@ model:
   loss_fun: l1
   edge_decoding: dot
   graph_pooling: add
-  alpha: 0.5 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
+  alpha: 0.95 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
   alpha_eval_flag: a # inference: a: use alpha values, p: bernoulli (as in training), n: synchronous update
   centrality_range: 0
   use_coloring: False

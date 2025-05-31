@@ -31,7 +31,7 @@ conda clean --all
 ### Running PEGT
 ```bash
 # Run
-python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml wandb.use False accelerator "cuda:0" seed 0 dataset.dir '../datasets'
+python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml accelerator "cuda:0" seed 0 dataset.dir '../datasets'
 # replace 'cuda:0' with the device to use
 # replace 'xx/xx/data' with your data-dir (by default './datasets")
 # replace 'configs/GRIT/zinc-GRIT.yaml' with any experiments to run
