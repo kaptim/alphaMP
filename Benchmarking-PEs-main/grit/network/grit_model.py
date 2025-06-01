@@ -133,7 +133,7 @@ class GritTransformer(torch.nn.Module):
                 batch = module(batch)
         return batch
 
-    def get_mask(self, batch):
+    def get_node_mask(self, batch):
         # return mask for the batch based on cfg.model.alpha and cfg.model.centrality_range
         # training: alpha is used as the probability for a bernoulli distribution
         # inference: depends on cfg.model.alpha_eval_flag
@@ -179,20 +179,38 @@ class GritTransformer(torch.nn.Module):
                     f"Unexpected alpha flag: {cfg.model.alpha_eval_flag}"
                 )
 
+    def get_edge_mask(self, batch, node_mask):
+        # mask updates for edges which are between two masked nodes
+        edge_mask = torch.empty(
+            (batch.edge_index.shape[1], 1), device=batch.edge_attr.device
+        )
+        for i in range(batch.edge_index.shape[1]):
+            edge_mask[i] = (
+                node_mask[batch.edge_index[0][i]] | node_mask[batch.edge_index[1][i]]
+            )
+        return edge_mask.int()
+
     def color_update(self, batch):
         # update using coloring of the graph
         colors = batch.coloring.unique().tolist()
         for layer in self.layers:
-            mask = self.get_mask(batch)
+            mask = self.get_node_mask(batch)
             for color in colors:
                 # only update nodes with color=color in this iteration
-                combined_mask = (
+                node_combined_mask = (
                     torch.logical_not(batch.coloring - color).int().unsqueeze(-1) * mask
                 )
+                edge_mask = self.get_edge_mask(batch, node_combined_mask)
+                batch_old_x = batch.x.detach().clone()
                 # layer() calls forward (after registering hooks), modifies batch in place
                 # i.e., you should read this as "keep some values of the original batch,
                 # update batch (by passing it through the layer) and keep some (mask) of the new values"
-                batch.x = (1 - combined_mask) * batch.x + combined_mask * layer(batch).x
+                batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
+                    batch
+                ).edge_attr
+                batch.x = (
+                    1 - node_combined_mask
+                ) * batch_old_x + node_combined_mask * batch.x
 
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
@@ -201,9 +219,14 @@ class GritTransformer(torch.nn.Module):
             self.color_update(batch)
             return
         for layer in self.layers:
-            mask = self.get_mask(batch)
+            node_mask = self.get_node_mask(batch)
+            # edge_mask: only update edges where at least one of the end nodes is updated
+            edge_mask = self.get_edge_mask(batch, node_mask)
+            batch_old_x = batch.x.detach().clone()
             # layer() calls forward (after registering hooks), modifies batch in place
             # i.e., you should read this as "keep some values of the original batch,
             # update batch (by passing it through the layer) and keep some (mask) of the new values"
-            print("viper")
-            batch.x = (1 - mask) * batch.x + mask * layer(batch).x
+            batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
+                batch
+            ).edge_attr
+            batch.x = (1 - node_mask) * batch_old_x + node_mask * batch.x

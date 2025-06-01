@@ -130,13 +130,20 @@ class CustomGNN(torch.nn.Module):
             mask = self.get_node_mask(batch)
             for color in colors:
                 # only update nodes with color=color in this iteration
-                combined_mask = (
+                node_combined_mask = (
                     torch.logical_not(batch.coloring - color).int().unsqueeze(-1) * mask
                 )
+                edge_mask = self.get_edge_mask(batch, node_combined_mask)
+                batch_old_x = batch.x.detach().clone()
                 # layer() calls forward (after registering hooks), modifies batch in place
                 # i.e., you should read this as "keep some values of the original batch,
                 # update batch (by passing it through the layer) and keep some (mask) of the new values"
-                batch.x = (1 - combined_mask) * batch.x + combined_mask * layer(batch).x
+                batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
+                    batch
+                ).edge_attr
+                batch.x = (
+                    1 - node_combined_mask
+                ) * batch_old_x + node_combined_mask * batch.x
 
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
