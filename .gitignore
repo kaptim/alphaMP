@@ -3,6 +3,7 @@ alphagnn/tests
 logs*
 wandb*
 GRIT-main
+Benchmarking-PEs-main/results
 scripts/plot_data
 plots
 datasets

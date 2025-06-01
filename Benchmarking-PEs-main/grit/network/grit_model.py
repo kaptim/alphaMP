@@ -179,10 +179,11 @@ class GritTransformer(torch.nn.Module):
                     f"Unexpected alpha flag: {cfg.model.alpha_eval_flag}"
                 )
 
-    def color_update(self, batch, mask):
+    def color_update(self, batch):
         # update using coloring of the graph
         colors = batch.coloring.unique().tolist()
         for layer in self.layers:
+            mask = self.get_mask(batch)
             for color in colors:
                 # only update nodes with color=color in this iteration
                 combined_mask = (
@@ -196,12 +197,13 @@ class GritTransformer(torch.nn.Module):
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
         # evaluation: depends on alpha_evaluation_flag
-        mask = self.get_mask(batch)
         if cfg.model.use_coloring:
-            self.color_update(batch, mask)
+            self.color_update(batch)
             return
         for layer in self.layers:
+            mask = self.get_mask(batch)
             # layer() calls forward (after registering hooks), modifies batch in place
             # i.e., you should read this as "keep some values of the original batch,
             # update batch (by passing it through the layer) and keep some (mask) of the new values"
+            print("viper")
             batch.x = (1 - mask) * batch.x + mask * layer(batch).x

@@ -173,11 +173,12 @@ class Mpnn(torch.nn.Module):
             else:
                 raise RuntimeError(f"Unexpected alpha flag: {self.alpha_eval_flag}")
 
-    def color_update(self, batch, mask):
+    def color_update(self, batch):
         # update using coloring of the graph
         colors = batch.coloring.unique().tolist()
         if not self.recurrent:
             for block in self.blocks:
+                mask = self.get_mask(batch)
                 for color in colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
@@ -194,6 +195,7 @@ class Mpnn(torch.nn.Module):
         else:
             # apply one layer recurrently
             for i in range(self.num_layers):
+                mask = self.get_mask(batch)
                 for color in colors:
                     # only update nodes with color=color in this iteration
                     combined_mask = (
@@ -209,12 +211,12 @@ class Mpnn(torch.nn.Module):
         # performs the update on this batch including all necessary masking
         # training: some old values, some new values
         # evaluation: depends on self.alpha_evaluation_flag
-        mask = self.get_mask(batch)
         if self.use_coloring:
-            self.color_update(batch, mask)
+            self.color_update(batch)
             return
         if not self.recurrent:
             for block in self.blocks:
+                mask = self.get_mask(batch)
                 # block() calls forward (after registering hooks), modifies batch in place
                 # i.e., you should read this as "keep some values of the original batch,
                 # update batch (by passing it through the layer) and keep some (mask) of the new values"
@@ -223,5 +225,6 @@ class Mpnn(torch.nn.Module):
         else:
             # apply one layer recurrently
             for i in range(self.num_layers):
+                mask = self.get_mask(batch)
                 # difference to above: self.blocks instead of block
                 batch.x = (1 - mask) * batch.x + mask * self.blocks(batch).x
