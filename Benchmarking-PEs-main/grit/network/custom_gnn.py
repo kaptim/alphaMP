@@ -65,7 +65,7 @@ class CustomGNN(torch.nn.Module):
                 batch = module(batch)
         return batch
 
-    def get_mask(self, batch):
+    def get_node_mask(self, batch):
         # return mask for the batch based on cfg.model.alpha and cfg.model.centrality_range
         # training: alpha is used as the probability for a bernoulli distribution
         # inference: depends on cfg.model.alpha_eval_flag
@@ -79,7 +79,8 @@ class CustomGNN(torch.nn.Module):
         alphas = torch.full(
             (batch.x.shape[0], 1),
             fill_value=cfg.model.alpha - cfg.model.centrality_range,
-        ).to(device=batch.x.device)
+            device=batch.x.device,
+        )
         # adapt alphas using the normalised centrality information of the nodes
         # clamp centrality values to ensure that the normalised values are in [0,1]
         alphas += (
@@ -103,19 +104,30 @@ class CustomGNN(torch.nn.Module):
                 return torch.bernoulli(alphas).int()
             elif cfg.model.alpha_eval_flag == "n":
                 # no mask during inference
-                return torch.full((batch.x.shape[0], 1), fill_value=1).to(
-                    device=batch.x.device
+                return torch.full(
+                    (batch.x.shape[0], 1), fill_value=1, device=batch.x.device
                 )
             else:
                 raise RuntimeError(
                     f"Unexpected alpha flag: {cfg.model.alpha_eval_flag}"
                 )
 
+    def get_edge_mask(self, batch, node_mask):
+        # mask updates for edges which are between two masked nodes
+        edge_mask = torch.empty(
+            (batch.edge_index.shape[1], 1), device=batch.edge_attr.device
+        )
+        for i in range(batch.edge_index.shape[1]):
+            edge_mask[i] = (
+                node_mask[batch.edge_index[0][i]] | node_mask[batch.edge_index[1][i]]
+            )
+        return edge_mask.int()
+
     def color_update(self, batch):
         # update using coloring of the graph
         colors = batch.coloring.unique().tolist()
         for layer in self.gnn_layers:
-            mask = self.get_mask(batch)
+            mask = self.get_node_mask(batch)
             for color in colors:
                 # only update nodes with color=color in this iteration
                 combined_mask = (
@@ -133,9 +145,14 @@ class CustomGNN(torch.nn.Module):
             self.color_update(batch)
             return
         for layer in self.gnn_layers:
-            mask = self.get_mask(batch)
-            print("viper")
+            node_mask = self.get_node_mask(batch)
+            # edge_mask: only update edges where at least one of the end nodes is updated
+            edge_mask = self.get_edge_mask(batch, node_mask)
+            batch_old_x = batch.x.detach().clone()
             # layer() calls forward (after registering hooks), modifies batch in place
             # i.e., you should read this as "keep some values of the original batch,
             # update batch (by passing it through the layer) and keep some (mask) of the new values"
-            batch.x = (1 - mask) * batch.x + mask * layer(batch).x
+            batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
+                batch
+            ).edge_attr
+            batch.x = (1 - node_mask) * batch_old_x + node_mask * batch.x
