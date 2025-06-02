@@ -15,6 +15,7 @@ wandb:
   name: ZINC-GatedGCN-noPE
   entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets
   format: PyG-ZINC
   name: subset
   task: graph
