@@ -8,9 +8,9 @@ mlflow:
   name: peptides-func-GRIT-noPE
 wandb:
   use: True
-  project: "PEGT"
-  name: "peptides-func-GRIT-noPE"
-  entity: jiaqing
+  project: async_pe
+  name: peptides-func-GRIT-noPE
+  entity: tkrappel-eth-zurich
 dataset:
   format: OGB
   name: peptides-functional
@@ -23,6 +23,8 @@ dataset:
   edge_encoder: True
   edge_encoder_name: Bond
   edge_encoder_bn: False
+  centrality_min: 0
+  centrality_max: 1 # needs to be set to correctly reflect the dataset
 posenc_RRWP:
   enable: False
   ksteps: 17
@@ -38,6 +40,10 @@ model:
   type: GritTransformer
   loss_fun: cross_entropy
   graph_pooling: mean
+  alpha: 0.95 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
+  alpha_eval_flag: a # inference: a: use alpha values, p: bernoulli (as in training), n: synchronous update
+  centrality_range: 0
+  use_coloring: False
 gt:
   layer_type: GritTransformer
   layers: 4
