@@ -118,7 +118,7 @@ class CustomGNN(torch.nn.Module):
             (batch.edge_index.shape[1], 1), device=batch.edge_attr.device
         )
         for i in range(batch.edge_index.shape[1]):
-            print("bitwise_or_cuda")
+
             if self.training:
                 # training: only 0, 1 values
                 edge_mask[i] = (
@@ -127,6 +127,7 @@ class CustomGNN(torch.nn.Module):
                 )
             else:
                 # inference
+                # TODO: finalise inference logic
                 edge_mask[i] = (
                     node_mask[batch.edge_index[0][i]]
                     | node_mask[batch.edge_index[1][i]]
