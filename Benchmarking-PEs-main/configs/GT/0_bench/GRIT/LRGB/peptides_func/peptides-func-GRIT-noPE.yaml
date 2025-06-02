@@ -12,6 +12,7 @@ wandb:
   name: peptides-func-GRIT-noPE
   entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets/LRGBDataset
   format: OGB
   name: peptides-functional
   task: graph

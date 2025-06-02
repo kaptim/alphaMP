@@ -36,6 +36,13 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 # replace 'xx/xx/data' with your data-dir (by default './datasets")
 # replace 'configs/GRIT/zinc-GRIT.yaml' with any experiments to run
 # configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml
+
+# configs/GT/0_bench/GRIT/cifar10/cifar10-GRIT-noPE.yaml
+# configs/GT/0_bench/GRIT/cluster/cluster-GRIT-noPE.yaml
+# configs/GT/0_bench/GRIT/LRGB/peptides_func/peptides-func-GRIT-noPE.yaml
+# configs/GT/0_bench/GRIT/LRGB/peptides_struct/peptides-struct-GRIT-noPE.yaml
+# configs/GT/0_bench/GRIT/mnist/mnist-GRIT-noPE.yaml
+# configs/GT/0_bench/GRIT/pattern/pattern-GRIT-noPE.yaml
 # configs/GT/0_bench/GRIT/zinc/zinc-GRIT-noPE.yaml
 ```
 

@@ -14,6 +14,7 @@ wandb:
   name: MNIST-GRIT-noPE
   entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets/MNIST
   pe_transform_on_the_fly: False # compute PE on the fly to save memory when launching many experiments in parallel
   format: PyG-GNNBenchmarkDataset
   name: MNIST

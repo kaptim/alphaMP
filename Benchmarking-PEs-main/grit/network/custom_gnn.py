@@ -118,10 +118,21 @@ class CustomGNN(torch.nn.Module):
             (batch.edge_index.shape[1], 1), device=batch.edge_attr.device
         )
         for i in range(batch.edge_index.shape[1]):
-            edge_mask[i] = (
-                node_mask[batch.edge_index[0][i]] | node_mask[batch.edge_index[1][i]]
-            )
-        return edge_mask.int()
+            print("bitwise_or_cuda")
+            if self.training:
+                # training: only 0, 1 values
+                edge_mask[i] = (
+                    node_mask[batch.edge_index[0][i]]
+                    | node_mask[batch.edge_index[1][i]]
+                )
+            else:
+                # inference
+                edge_mask[i] = (
+                    node_mask[batch.edge_index[0][i]]
+                    | node_mask[batch.edge_index[1][i]]
+                )
+
+        return edge_mask
 
     def color_update(self, batch):
         # update using coloring of the graph

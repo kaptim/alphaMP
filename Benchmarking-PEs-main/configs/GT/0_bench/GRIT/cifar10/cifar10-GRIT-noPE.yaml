@@ -14,6 +14,7 @@ wandb:
   name: CIFAR10-GRIT-noPE
   entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets/CIFAR10
   pe_transform_on_the_fly: False
   format: PyG-GNNBenchmarkDataset
   name: CIFAR10

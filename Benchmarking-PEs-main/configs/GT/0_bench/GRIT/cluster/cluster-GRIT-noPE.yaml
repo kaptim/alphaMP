@@ -9,6 +9,7 @@ wandb:
   name: cluster-GRIT-noPE
   entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets/CLUSTER
   format: PyG-GNNBenchmarkDataset
   name: CLUSTER
   task: graph

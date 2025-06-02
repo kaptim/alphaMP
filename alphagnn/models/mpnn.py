@@ -175,6 +175,7 @@ class Mpnn(torch.nn.Module):
                 raise RuntimeError(f"Unexpected alpha flag: {self.alpha_eval_flag}")
 
     def get_edge_mask(self, batch, node_mask):
+        # TODO: outdated, if you want to run this, need to update compare edge_mask implementation with the one in benchmarking-PEs
         # mask updates for edges which are between two masked nodes
         edge_mask = torch.empty(
             (batch.edge_index.shape[1], 1), device=batch.edge_attr.device
