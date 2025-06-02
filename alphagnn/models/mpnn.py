@@ -136,7 +136,7 @@ class Mpnn(torch.nn.Module):
     def get_params(self):
         return self.parameters()
 
-    def get_mask(self, batch):
+    def get_node_mask(self, batch):
         # return mask for the batch based on self.alpha and self.centrality_range
         # training: alpha is used as the probability for a bernoulli distribution
         # inference: depends on self.alpha_eval_flag
@@ -145,6 +145,7 @@ class Mpnn(torch.nn.Module):
         if self.centrality_range > self.alpha or self.centrality_range < 0:
             raise RuntimeError(f"Centrality range value should be in [0,alpha]")
         # update running min, max
+        # TODO: clamping
         if batch.centrality.max() > self.max_running:
             self.max_running = batch.centrality.max()
         if batch.centrality.min() < self.min_running:
@@ -173,41 +174,63 @@ class Mpnn(torch.nn.Module):
             else:
                 raise RuntimeError(f"Unexpected alpha flag: {self.alpha_eval_flag}")
 
+    def get_edge_mask(self, batch, node_mask):
+        # mask updates for edges which are between two masked nodes
+        edge_mask = torch.empty(
+            (batch.edge_index.shape[1], 1), device=batch.edge_attr.device
+        )
+        for i in range(batch.edge_index.shape[1]):
+            edge_mask[i] = (
+                node_mask[batch.edge_index[0][i]] | node_mask[batch.edge_index[1][i]]
+            )
+        return edge_mask.int()
+
     def color_update(self, batch):
         # update using coloring of the graph
         colors = batch.coloring.unique().tolist()
         if not self.recurrent:
             for block in self.blocks:
-                mask = self.get_mask(batch)
+                mask = self.get_node_mask(batch)
                 for color in colors:
                     # only update nodes with color=color in this iteration
-                    combined_mask = (
+                    node_combined_mask = (
                         torch.logical_not(batch.coloring - color).int().unsqueeze(-1)
                         * mask
                     )
+                    edge_mask = self.get_edge_mask(batch, node_combined_mask)
+                    batch_old_x = batch.x.detach().clone()
                     # block() calls forward (after registering hooks), modifies batch in place
                     # i.e., you should read this as "keep some values of the original batch,
                     # update batch (by passing it through the layer) and keep some (mask) of the new values"
-                    batch.x = (1 - combined_mask) * batch.x + combined_mask * block(
-                        batch
-                    ).x
+                    batch.edge_attr = (
+                        1 - edge_mask
+                    ) * batch.edge_attr + edge_mask * block(batch).edge_attr
+                    batch.x = (
+                        1 - node_combined_mask
+                    ) * batch_old_x + node_combined_mask * batch.x
 
         else:
             # apply one layer recurrently
             for i in range(self.num_layers):
-                mask = self.get_mask(batch)
+                mask = self.get_node_mask(batch)
                 for color in colors:
                     # only update nodes with color=color in this iteration
-                    combined_mask = (
+                    node_combined_mask = (
                         torch.logical_not(batch.coloring - color).int().unsqueeze(-1)
                         * mask
                     )
+                    edge_mask = self.get_edge_mask(batch, node_combined_mask)
+                    batch_old_x = batch.x.detach().clone()
                     # difference to above: self.blocks instead of block
+                    batch.edge_attr = (
+                        1 - edge_mask
+                    ) * batch.edge_attr + edge_mask * self.blocks(batch).edge_attr
                     batch.x = (
-                        1 - combined_mask
-                    ) * batch.x + combined_mask * self.blocks(batch).x
+                        1 - node_combined_mask
+                    ) * batch_old_x + node_combined_mask * batch.x
 
     def masked_update(self, batch):
+        # TODO: implement edge masking
         # performs the update on this batch including all necessary masking
         # training: some old values, some new values
         # evaluation: depends on self.alpha_evaluation_flag
@@ -216,15 +239,26 @@ class Mpnn(torch.nn.Module):
             return
         if not self.recurrent:
             for block in self.blocks:
-                mask = self.get_mask(batch)
+                node_mask = self.get_node_mask(batch)
+                # edge_mask: only update edges where at least one of the end nodes is updated
+                edge_mask = self.get_edge_mask(batch, node_mask)
+                batch_old_x = batch.x.detach().clone()
                 # block() calls forward (after registering hooks), modifies batch in place
                 # i.e., you should read this as "keep some values of the original batch,
                 # update batch (by passing it through the layer) and keep some (mask) of the new values"
-                batch.x = (1 - mask) * batch.x + mask * block(batch).x
+                batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * block(
+                    batch
+                ).edge_attr
+                batch.x = (1 - node_mask) * batch_old_x + node_mask * batch.x
 
         else:
             # apply one layer recurrently
             for i in range(self.num_layers):
-                mask = self.get_mask(batch)
+                node_mask = self.get_node_mask(batch)
+                edge_mask = self.get_edge_mask(batch, node_mask)
+                batch_old_x = batch.x.detach().clone()
                 # difference to above: self.blocks instead of block
-                batch.x = (1 - mask) * batch.x + mask * self.blocks(batch).x
+                batch.edge_attr = (
+                    1 - edge_mask
+                ) * batch.edge_attr + edge_mask * self.blocks(batch).edge_attr
+                batch.x = (1 - node_mask) * batch_old_x + node_mask * batch.x
