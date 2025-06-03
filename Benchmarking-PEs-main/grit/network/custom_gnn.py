@@ -171,7 +171,7 @@ class CustomGNN(torch.nn.Module):
 
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
-        # evaluation: depends on alpha_evaluation_flag
+        # evaluation: depends on alpha_node_flag
         if cfg.model.use_coloring:
             self.color_update(batch)
             return

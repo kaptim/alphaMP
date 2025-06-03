@@ -5,7 +5,11 @@ import torch.nn.functional as F
 import torch_geometric as pyg
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_scatter import scatter, scatter_max, scatter_add
-from torch_geometric.utils import remove_self_loops, add_remaining_self_loops, add_self_loops
+from torch_geometric.utils import (
+    remove_self_loops,
+    add_remaining_self_loops,
+    add_self_loops,
+)
 from grit.utils import negate_edge_index
 from torch_geometric.graphgym.register import *
 import opt_einsum as oe
@@ -16,6 +20,8 @@ import warnings
 
 from .GRITSparseConv import GRITSparseConv
 from torch_geometric.nn.conv import GINEConv, GINConv
+
+
 def pyg_softmax(src, index, num_nodes=None):
     r"""Computes a sparsely evaluated softmax.
     Given a value tensor :attr:`src`, this function first groups the values
@@ -35,25 +41,31 @@ def pyg_softmax(src, index, num_nodes=None):
 
     out = src - scatter_max(src, index, dim=0, dim_size=num_nodes)[0][index]
     out = out.exp()
-    out = out / (
-            scatter_add(out, index, dim=0, dim_size=num_nodes)[index] + 1e-16)
+    out = out / (scatter_add(out, index, dim=0, dim_size=num_nodes)[index] + 1e-16)
 
     return out
 
 
-
 class MultiHeadAttentionLayerGritSparse(nn.Module):
     """
-        Proposed Attention Computation for GRIT
+    Proposed Attention Computation for GRIT
     """
 
-    def __init__(self, in_dim, out_dim, num_heads, use_bias,
-                 clamp=5., dropout=0., act=None,
-                 edge_enhance=True,
-                 sqrt_relu=False,
-                 signed_sqrt=True,
-                 cfg=CN(),
-                 **kwargs):
+    def __init__(
+        self,
+        in_dim,
+        out_dim,
+        num_heads,
+        use_bias,
+        clamp=5.0,
+        dropout=0.0,
+        act=None,
+        edge_enhance=True,
+        sqrt_relu=False,
+        signed_sqrt=True,
+        cfg=CN(),
+        **kwargs,
+    ):
         super().__init__()
 
         self.out_dim = out_dim
@@ -71,7 +83,9 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
         nn.init.xavier_normal_(self.E.weight)
         nn.init.xavier_normal_(self.V.weight)
 
-        self.Aw = nn.Parameter(torch.zeros(self.out_dim, self.num_heads, 1), requires_grad=True)
+        self.Aw = nn.Parameter(
+            torch.zeros(self.out_dim, self.num_heads, 1), requires_grad=True
+        )
         nn.init.xavier_normal_(self.Aw)
 
         if act is None:
@@ -80,18 +94,21 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
             self.act = act_dict[act]()
 
         if self.edge_enhance:
-            self.VeRow = nn.Parameter(torch.zeros(self.out_dim, self.num_heads, self.out_dim), requires_grad=True)
+            self.VeRow = nn.Parameter(
+                torch.zeros(self.out_dim, self.num_heads, self.out_dim),
+                requires_grad=True,
+            )
             nn.init.xavier_normal_(self.VeRow)
 
     def propagate_attention(self, batch):
 
-        src = batch.K_h[batch.edge_index[0]]      # (num relative) x num_heads x out_dim
-        dest = batch.Q_h[batch.edge_index[1]]     # (num relative) x num_heads x out_dim
-        score = src + dest                        # element-wise multiplication
+        src = batch.K_h[batch.edge_index[0]]  # (num relative) x num_heads x out_dim
+        dest = batch.Q_h[batch.edge_index[1]]  # (num relative) x num_heads x out_dim
+        score = src + dest  # element-wise multiplication
 
         if batch.get("E", None) is not None:
             batch.E = batch.E.view(-1, self.num_heads, self.out_dim * 2)
-            E_w, E_b = batch.E[:, :, :self.out_dim], batch.E[:, :, self.out_dim:]
+            E_w, E_b = batch.E[:, :, : self.out_dim], batch.E[:, :, self.out_dim :]
             # (num relative) x num_heads x out_dim
             score = score * E_w
             score = torch.sqrt(torch.relu(score)) - torch.sqrt(torch.relu(-score))
@@ -111,23 +128,25 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
 
         raw_attn = score
 
-        score = pyg_softmax(score, batch.edge_index[1])  # (num relative) x num_heads x 1
+        score = pyg_softmax(
+            score, batch.edge_index[1]
+        )  # (num relative) x num_heads x 1
         score = self.dropout(score)
         batch.attn = score
 
         # Aggregate with Attn-Score
-        msg = batch.V_h[batch.edge_index[0]] * score  # (num relative) x num_heads x out_dim
+        msg = (
+            batch.V_h[batch.edge_index[0]] * score
+        )  # (num relative) x num_heads x out_dim
 
-        batch.wV = torch.zeros_like(batch.V_h)  # (num nodes in batch) x num_heads x out_dim
-        scatter(msg, batch.edge_index[1], dim=0, out=batch.wV, reduce='add')
-
-
-
+        batch.wV = torch.zeros_like(
+            batch.V_h
+        )  # (num nodes in batch) x num_heads x out_dim
+        scatter(msg, batch.edge_index[1], dim=0, out=batch.wV, reduce="add")
 
         if self.edge_enhance and batch.get("E", None) is not None:
             rowV = scatter(e_t * score, batch.edge_index[1], dim=0, reduce="add")
             rowV = oe.contract("nhd, dhc -> nhc", rowV, self.VeRow, backend="torch")
-
 
             batch.wV = batch.wV + rowV
 
@@ -146,7 +165,7 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
         batch.V_h = V_h.view(-1, self.num_heads, self.out_dim)
         self.propagate_attention(batch)
         h_out = batch.wV
-        e_out = batch.get('wE', None)
+        e_out = batch.get("wE", None)
 
         return h_out, e_out
 
@@ -154,20 +173,26 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
 @register_layer("GritTransformer")
 class GritTransformerLayer(nn.Module):
     """
-        Proposed Transformer Layer for GRIT
+    Proposed Transformer Layer for GRIT
     """
-    def __init__(self, in_dim, out_dim, num_heads,
-                 dropout=0.0,
-                 attn_dropout=0.0,
-                 layer_norm=False,
-                 batch_norm=True,
-                 sparse = False,
-                 residual=True,
-                 act='relu',
-                 norm_e=True,
-                 O_e=True,
-                 cfg=dict(),
-                 **kwargs):
+
+    def __init__(
+        self,
+        in_dim,
+        out_dim,
+        num_heads,
+        dropout=0.0,
+        attn_dropout=0.0,
+        layer_norm=False,
+        batch_norm=True,
+        sparse=False,
+        residual=True,
+        act="relu",
+        norm_e=True,
+        O_e=True,
+        cfg=dict(),
+        **kwargs,
+    ):
         super().__init__()
 
         self.debug = False
@@ -181,7 +206,6 @@ class GritTransformerLayer(nn.Module):
         self.layer_norm = layer_norm
         self.batch_norm = batch_norm
         self.sparse = sparse
-
 
         # -------
         self.update_e = cfg.get("update_e", True)
@@ -199,7 +223,7 @@ class GritTransformerLayer(nn.Module):
         self.mlp = torch.nn.Sequential(
             torch.nn.Linear(in_dim, out_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(out_dim, out_dim)
+            torch.nn.Linear(out_dim, out_dim),
         )
         self.gine = cfg.get("gine", None)
         # Initialize the GINEConv layer
@@ -224,7 +248,7 @@ class GritTransformerLayer(nn.Module):
                 num_heads=num_heads,
                 use_bias=cfg.attn.get("use_bias", False),
                 dropout=attn_dropout,
-                clamp=cfg.attn.get("clamp", 5.),
+                clamp=cfg.attn.get("clamp", 5.0),
                 act=cfg.attn.get("act", "relu"),
                 edge_enhance=cfg.attn.get("edge_enhance", True),
                 sqrt_relu=cfg.attn.get("sqrt_relu", False),
@@ -236,34 +260,34 @@ class GritTransformerLayer(nn.Module):
         if self.gine:
             self.attention = self.gine_conv
 
-        if cfg.attn.get('graphormer_attn', False):
+        if cfg.attn.get("graphormer_attn", False):
             self.attention = MultiHeadAttentionLayerGraphormerSparse(
                 in_dim=in_dim,
                 out_dim=out_dim // num_heads,
                 num_heads=num_heads,
                 use_bias=cfg.attn.get("use_bias", False),
                 dropout=attn_dropout,
-                clamp=cfg.attn.get("clamp", 5.),
+                clamp=cfg.attn.get("clamp", 5.0),
                 act=cfg.attn.get("act", "relu"),
                 edge_enhance=True,
                 sqrt_relu=cfg.attn.get("sqrt_relu", False),
                 signed_sqrt=cfg.attn.get("signed_sqrt", False),
-                scaled_attn =cfg.attn.get("scaled_attn", False),
+                scaled_attn=cfg.attn.get("scaled_attn", False),
                 no_qk=cfg.attn.get("no_qk", False),
             )
 
-
-
-        self.O_h = nn.Linear(out_dim//num_heads * num_heads, out_dim)
+        self.O_h = nn.Linear(out_dim // num_heads * num_heads, out_dim)
         if O_e:
-            self.O_e = nn.Linear(out_dim//num_heads * num_heads, out_dim)
+            self.O_e = nn.Linear(out_dim // num_heads * num_heads, out_dim)
         else:
             self.O_e = nn.Identity()
 
         # -------- Deg Scaler Option ------
 
         if self.deg_scaler:
-            self.deg_coef = nn.Parameter(torch.zeros(1, out_dim//num_heads * num_heads , 2))
+            self.deg_coef = nn.Parameter(
+                torch.zeros(1, out_dim // num_heads * num_heads, 2)
+            )
             nn.init.xavier_normal_(self.deg_coef)
 
         if self.layer_norm:
@@ -272,8 +296,22 @@ class GritTransformerLayer(nn.Module):
 
         if self.batch_norm:
             # when the batch_size is really small, use smaller momentum to avoid bad mini-batch leading to extremely bad val/test loss (NaN)
-            self.batch_norm1_h = nn.BatchNorm1d(out_dim, track_running_stats=not self.bn_no_runner, eps=1e-5, momentum=cfg.bn_momentum)
-            self.batch_norm1_e = nn.BatchNorm1d(out_dim, track_running_stats=not self.bn_no_runner, eps=1e-5, momentum=cfg.bn_momentum) if norm_e else nn.Identity()
+            self.batch_norm1_h = nn.BatchNorm1d(
+                out_dim,
+                track_running_stats=not self.bn_no_runner,
+                eps=1e-5,
+                momentum=cfg.bn_momentum,
+            )
+            self.batch_norm1_e = (
+                nn.BatchNorm1d(
+                    out_dim,
+                    track_running_stats=not self.bn_no_runner,
+                    eps=1e-5,
+                    momentum=cfg.bn_momentum,
+                )
+                if norm_e
+                else nn.Identity()
+            )
 
         # FFN for h
         self.FFN_h_layer1 = nn.Linear(out_dim, out_dim * 2)
@@ -283,12 +321,17 @@ class GritTransformerLayer(nn.Module):
             self.layer_norm2_h = nn.LayerNorm(out_dim)
 
         if self.batch_norm:
-            self.batch_norm2_h = nn.BatchNorm1d(out_dim, track_running_stats=not self.bn_no_runner, eps=1e-5, momentum=cfg.bn_momentum)
+            self.batch_norm2_h = nn.BatchNorm1d(
+                out_dim,
+                track_running_stats=not self.bn_no_runner,
+                eps=1e-5,
+                momentum=cfg.bn_momentum,
+            )
 
         if self.rezero:
-            self.alpha1_h = nn.Parameter(torch.zeros(1,1))
-            self.alpha2_h = nn.Parameter(torch.zeros(1,1))
-            self.alpha1_e = nn.Parameter(torch.zeros(1,1))
+            self.alpha1_h = nn.Parameter(torch.zeros(1, 1))
+            self.alpha2_h = nn.Parameter(torch.zeros(1, 1))
+            self.alpha1_e = nn.Parameter(torch.zeros(1, 1))
 
     def forward(self, batch):
 
@@ -309,10 +352,11 @@ class GritTransformerLayer(nn.Module):
             #     h_attn_out = self.gin_conv(batch.x, batch.edge_index)
             e_attn_out = None
         elif self.sparse:
-            h_attn_out, e_attn_out = self.attention(batch.x, batch.edge_index, batch.edge_attr)
+            h_attn_out, e_attn_out = self.attention(
+                batch.x, batch.edge_index, batch.edge_attr
+            )
         else:
             h_attn_out, e_attn_out = self.attention(batch)
-
 
         h = h_attn_out.view(num_nodes, -1)
         h = F.dropout(h, self.dropout, training=self.training)
@@ -322,8 +366,6 @@ class GritTransformerLayer(nn.Module):
             h = torch.stack([h, h * log_deg], dim=-1)
             h = (h * self.deg_coef).sum(dim=-1)
 
-        
-
         h = self.O_h(h)
         if e_attn_out is not None:
             e = e_attn_out.flatten(1)
@@ -331,19 +373,23 @@ class GritTransformerLayer(nn.Module):
             e = self.O_e(e)
 
         if self.residual:
-            if self.rezero: h = h * self.alpha1_h
+            if self.rezero:
+                h = h * self.alpha1_h
             h = h_in1 + h  # residual connection
             if e is not None:
-                if self.rezero: e = e * self.alpha1_e
+                if self.rezero:
+                    e = e * self.alpha1_e
                 e = e + e_in1
 
         if self.layer_norm:
             h = self.layer_norm1_h(h)
-            if e is not None: e = self.layer_norm1_e(e)
+            if e is not None:
+                e = self.layer_norm1_e(e)
 
         if self.batch_norm:
             h = self.batch_norm1_h(h)
-            if e is not None: e = self.batch_norm1_e(e)
+            if e is not None:
+                e = self.batch_norm1_e(e)
 
         # FFN for h
         h_in2 = h  # for second residual connection
@@ -353,7 +399,8 @@ class GritTransformerLayer(nn.Module):
         h = self.FFN_h_layer2(h)
 
         if self.residual:
-            if self.rezero: h = h * self.alpha2_h
+            if self.rezero:
+                h = h * self.alpha2_h
             h = h_in2 + h  # residual connection
 
         if self.layer_norm:
@@ -371,11 +418,15 @@ class GritTransformerLayer(nn.Module):
         return batch
 
     def __repr__(self):
-        return '{}(in_channels={}, out_channels={}, heads={}, residual={})\n[{}]'.format(
-            self.__class__.__name__,
-            self.in_channels,
-            self.out_channels, self.num_heads, self.residual,
-            super().__repr__(),
+        return (
+            "{}(in_channels={}, out_channels={}, heads={}, residual={})\n[{}]".format(
+                self.__class__.__name__,
+                self.in_channels,
+                self.out_channels,
+                self.num_heads,
+                self.residual,
+                super().__repr__(),
+            )
         )
 
 
@@ -387,13 +438,12 @@ def get_log_deg(batch):
         deg = batch.deg
         log_deg = torch.log(deg + 1).unsqueeze(-1)
     else:
-        warnings.warn("Compute the degree on the fly; Might be problematric if have applied edge-padding to complete graphs")
-        deg = pyg.utils.degree(batch.edge_index[1],
-                               num_nodes=batch.num_nodes,
-                               dtype=torch.float
-                               )
+        warnings.warn(
+            "Compute the degree on the fly; Might be problematic if have applied edge-padding to complete graphs"
+        )
+        deg = pyg.utils.degree(
+            batch.edge_index[1], num_nodes=batch.num_nodes, dtype=torch.float
+        )
         log_deg = torch.log(deg + 1)
     log_deg = log_deg.view(batch.num_nodes, 1)
     return log_deg
-
-
