@@ -14,7 +14,7 @@ wandb:
 dataset:
   dir: ../datasets/LRGBDataset
   format: OGB
-  name: peptides-structural
+  name: peptides-struct
   task: graph
   task_type: regression
   transductive: False
