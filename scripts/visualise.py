@@ -4,7 +4,9 @@ import numpy as np
 import pandas as pd
 import os
 
-PLOT_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plots")
+PLOT_FOLDER = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "plots\\centrality"
+)
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "plot_data")
 
 
