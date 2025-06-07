@@ -28,7 +28,7 @@ dataset:
   edge_encoder_name: LinearEdge
   edge_encoder_bn: False
   centrality_min: 0
-  centrality_max: 1 # needs to be set to correctly reflect the dataset
+  centrality_max: 0.25 # needs to be set to correctly reflect the dataset
 posenc_EquivStableLapPE:
   add_self_loops: True
   enable: False
