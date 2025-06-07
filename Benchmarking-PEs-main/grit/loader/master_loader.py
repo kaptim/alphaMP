@@ -50,6 +50,7 @@ from grit.loader.dataset.coco_superpixels import COCOSuperpixels
 from grit.loader.dataset.malnet_tiny import MalNetTiny
 from grit.loader.dataset.voc_superpixels import VOCSuperpixels
 from grit.loader.split_generator import prepare_splits, set_dataset_splits
+from grit.transform.alpha_transforms import NetworkAnalysis
 from grit.transform.posenc_stats import compute_posenc_stats, ComputePosencStat
 from grit.transform.transforms import (
     pre_transform_in_memory,
@@ -783,7 +784,7 @@ def load_dataset_master(format, name, dataset_dir):
     else:
         raise ValueError(f"Unknown data format: {format}")
     log_loaded_dataset(dataset, format, name)
-
+    print("data")
     # Precompute necessary statistics for positional encodings.
     pe_enabled_list = []
 
@@ -1549,9 +1550,13 @@ def preformat_Peptides(dataset_dir, name):
 
     dataset_type = name.split("-", 1)[1]
     if dataset_type == "func":
-        dataset = PeptidesFunctionalDataset(dataset_dir)
+        dataset = PeptidesFunctionalDataset(
+            dataset_dir, pre_transform=NetworkAnalysis()
+        )
     elif dataset_type == "struct":
-        dataset = PeptidesStructuralDataset(dataset_dir)
+        dataset = PeptidesStructuralDataset(
+            dataset_dir, pre_transform=NetworkAnalysis()
+        )
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ["train", "val", "test"]]
     return dataset
