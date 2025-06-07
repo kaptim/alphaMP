@@ -43,7 +43,7 @@ model:
   alpha: 0.95 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
   alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
   alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
-  centrality_range: 0 # 0: no centrality information considered
+  centrality_range: 0.0 # 0: no centrality information considered
   use_coloring: False
 gt:  # Hyperparameters optimized for ~500k budget.
   layer_type: GritTransformer
