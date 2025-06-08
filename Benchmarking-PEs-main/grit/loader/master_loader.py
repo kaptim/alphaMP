@@ -784,7 +784,6 @@ def load_dataset_master(format, name, dataset_dir):
     else:
         raise ValueError(f"Unknown data format: {format}")
     log_loaded_dataset(dataset, format, name)
-    print("data")
     # Precompute necessary statistics for positional encodings.
     pe_enabled_list = []
 
