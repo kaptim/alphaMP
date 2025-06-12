@@ -14,7 +14,7 @@ wandb:
 dataset:
   dir: ../datasets/LRGBDataset
   format: OGB
-  name: peptides-func
+  name: peptides-functional
   task: graph
   task_type: classification_multilabel
   transductive: False

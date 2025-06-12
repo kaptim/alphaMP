@@ -1530,8 +1530,8 @@ def preformat_Peptides(dataset_dir, name):
     Args:
         dataset_dir: path where to store the cached dataset
         name: the type of dataset split:
-            - 'peptides-func' (10-task classification)
-            - 'peptides-struct' (11-task regression)
+            - 'peptides-functional' (10-task classification)
+            - 'peptides-structural' (11-task regression)
 
     Returns:
         PyG dataset object
@@ -1548,11 +1548,11 @@ def preformat_Peptides(dataset_dir, name):
         raise e
 
     dataset_type = name.split("-", 1)[1]
-    if dataset_type == "func":
+    if dataset_type == "functional":
         dataset = PeptidesFunctionalDataset(
             dataset_dir, pre_transform=NetworkAnalysis()
         )
-    elif dataset_type == "struct":
+    elif dataset_type == "structural":
         dataset = PeptidesStructuralDataset(
             dataset_dir, pre_transform=NetworkAnalysis()
         )
