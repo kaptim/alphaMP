@@ -44,6 +44,14 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 # configs/GT/0_bench/GRIT/mnist/mnist-GRIT-noPE.yaml
 # configs/GT/0_bench/GRIT/pattern/pattern-GRIT-noPE.yaml
 # configs/GT/0_bench/GRIT/zinc/zinc-GRIT-noPE.yaml
+
+# configs/GT/0_bench/GRIT/cifar10/cifar10-GRIT-RRWP.yaml
+# configs/GT/0_bench/GRIT/cluster/cluster-GRIT-RRWP.yaml
+# configs/GT/0_bench/GRIT/LRGB/peptides_func/peptides-func-GRIT-RRWP.yaml
+# configs/GT/0_bench/GRIT/LRGB/peptides_struct/peptides-struct-GRIT-RRWP.yaml
+# configs/GT/0_bench/GRIT/mnist/mnist-GRIT-RRWP.yaml
+# configs/GT/0_bench/GRIT/pattern/pattern-GRIT-RRWP.yaml
+# configs/GT/0_bench/GRIT/zinc/zinc-GRIT-RRWP.yaml
 ```
 
 ### Implemented Graph Transformers with Sparse Attention
