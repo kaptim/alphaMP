@@ -5,10 +5,11 @@ accelerator: "cuda:0"
 pad_to_full_graph: True
 wandb:
   use: True
-  project: "PEGT"
-  name: "cluster-GRIT-RRWP"
-  entity: jiaqing
+  project: async_pe
+  name: cluster-GRIT-RRWP
+  entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets/CLUSTER
   pe_transform_on_the_fly: True
   format: PyG-GNNBenchmarkDataset
   name: CLUSTER
@@ -22,6 +23,8 @@ dataset:
   edge_encoder: True
   edge_encoder_name: DummyEdge
   edge_encoder_bn: False
+  centrality_min: 0
+  centrality_max: 0.04 # needs to be set to correctly reflect the dataset
 posenc_RRWP:
   enable: True
   ksteps: 32
@@ -37,6 +40,11 @@ model:
   type: GritTransformer
   loss_fun: weighted_cross_entropy
   edge_decoding: dot
+  alpha: 0.95 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
+  alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
+  alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
+  centrality_range: 0.0 # 0: no centrality information considered
+  use_coloring: False
 gt:  # Hyperparameters optimized for ~500k budget.
   layer_type: GritTransformer
   layers: 16

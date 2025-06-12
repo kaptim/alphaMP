@@ -11,10 +11,11 @@ mlflow:
   name: zinc-GRIT-RRWP
 wandb:
   use: True
-  project: "PEGT"
-  name: "ZINC-GRIT-RRWP"
-  entity: jiaqing
+  project: async_pe
+  name: ZINC-GRIT-RRWP
+  entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets
   format: PyG-ZINC
   name: subset
   task: graph
@@ -28,6 +29,8 @@ dataset:
   edge_encoder_name: TypeDictEdge
   edge_encoder_num_types: 4
   edge_encoder_bn: False
+  centrality_min: 0
+  centrality_max: 0.8 # needs to be set to correctly reflect the dataset
 posenc_RRWP:
   enable: True
   ksteps: 21
@@ -47,6 +50,11 @@ model:
   loss_fun: l1
   edge_decoding: dot
   graph_pooling: add
+  alpha: 0.95 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
+  alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
+  alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
+  centrality_range: 0.0 # 0: no centrality information considered
+  use_coloring: False
 gt:
   layer_type: GritTransformer
   layers: 10
@@ -81,7 +89,7 @@ optim:
   clip_grad_norm: True
   optimizer: adamW
   weight_decay: 1e-5
-  base_lr: 1e-3
+  base_lr: 0.001
   max_epoch: 1500
   num_warmup_epochs: 50
   scheduler: cosine_with_warmup
