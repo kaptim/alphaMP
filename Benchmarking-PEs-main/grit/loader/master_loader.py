@@ -710,7 +710,7 @@ def load_dataset_master(format, name, dataset_dir):
             dataset = preformat_MalNetTiny(dataset_dir, feature_set=name)
 
         elif pyg_dataset_id == "Planetoid":
-            dataset = Planetoid(dataset_dir, name)
+            dataset = Planetoid(dataset_dir, name, pre_transform=NetworkAnalysis())
 
         elif pyg_dataset_id == "TUDataset":
             dataset = preformat_TUDataset(dataset_dir, name)
@@ -1258,14 +1258,19 @@ def preformat_syntheic(dataset_dir, name):
             data_list = dataset.makedata()  # Randomized data for each split
 
             syn_dataset = SyntheticGraphDataset(
-                root=dataset_dir, split=split, data_list=data_list
+                root=dataset_dir,
+                split=split,
+                data_list=data_list,
+                pre_transform=NetworkAnalysis(),
             )
             datasets.append(syn_dataset)
         dataset = join_dataset_splits(datasets)
         return dataset
     else:
         syn_dataset = SyntheticNodeDataset(
-            root=dataset_dir, data_list=dataset.makedata()
+            root=dataset_dir,
+            data_list=dataset.makedata(),
+            pre_transform=NetworkAnalysis(),
         )
         return syn_dataset
 
@@ -1292,7 +1297,12 @@ def preformat_GNNBenchmarkDataset(dataset_dir, name):
     dataset_dir = dataset_dir.replace("/GNNBenchmarkDataset", "")
     dataset = join_dataset_splits(
         [
-            GNNBenchmarkDataset(root=dataset_dir, name=name, split=split)
+            GNNBenchmarkDataset(
+                root=dataset_dir,
+                name=name,
+                split=split,
+                pre_transform=NetworkAnalysis(),
+            )
             for split in ["train", "val", "test"]
         ]
     )
@@ -1342,7 +1352,9 @@ def preformat_OGB_Graph(dataset_dir, name):
     Returns:
         PyG dataset object
     """
-    dataset = PygGraphPropPredDataset(name=name, root=dataset_dir)
+    dataset = PygGraphPropPredDataset(
+        name=name, root=dataset_dir, pre_transform=NetworkAnalysis()
+    )
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ["train", "valid", "test"]]
 
@@ -1423,7 +1435,7 @@ def preformat_OGB_PCQM4Mv2(dataset_dir, name):
         )
         raise e
 
-    dataset = PygPCQM4Mv2Dataset(root=dataset_dir)
+    dataset = PygPCQM4Mv2Dataset(root=dataset_dir, pre_transform=NetworkAnalysis())
     split_idx = dataset.get_idx_split()
 
     rng = default_rng(seed=42)
@@ -1626,7 +1638,12 @@ def preformat_ZINC(dataset_dir, name):
         raise ValueError(f"Unexpected subset choice for ZINC dataset: {name}")
     dataset = join_dataset_splits(
         [
-            ZINC(root=dataset_dir, subset=(name == "subset"), split=split)
+            ZINC(
+                root=dataset_dir,
+                subset=(name == "subset"),
+                split=split,
+                pre_transform=NetworkAnalysis(),
+            )
             for split in ["train", "val", "test"]
         ]
     )
@@ -1644,7 +1661,11 @@ def preformat_Counting(dataset_dir, name):
     dataset = join_dataset_splits(
         [
             SyntheticCounting(
-                root=dataset_dir, task=task, dataset_type=dataset_type, split=split
+                root=dataset_dir,
+                task=task,
+                dataset_type=dataset_type,
+                split=split,
+                pre_transform=NetworkAnalysis(),
             )
             for split in ["train", "val", "test"]
         ]
@@ -1662,7 +1683,10 @@ def preformat_AQSOL(dataset_dir):
         PyG dataset object
     """
     dataset = join_dataset_splits(
-        [AQSOL(root=dataset_dir, split=split) for split in ["train", "val", "test"]]
+        [
+            AQSOL(root=dataset_dir, split=split, pre_transform=NetworkAnalysis())
+            for split in ["train", "val", "test"]
+        ]
     )
     return dataset
 
@@ -1682,6 +1706,7 @@ def preformat_VOCSuperpixels(dataset_dir, name, slic_compactness):
                 name=name,
                 slic_compactness=slic_compactness,
                 split=split,
+                pre_transform=NetworkAnalysis(),
             )
             for split in ["train", "val", "test"]
         ]
@@ -1704,6 +1729,7 @@ def preformat_COCOSuperpixels(dataset_dir, name, slic_compactness):
                 name=name,
                 slic_compactness=slic_compactness,
                 split=split,
+                pre_transform=NetworkAnalysis(),
             )
             for split in ["train", "val", "test"]
         ]
