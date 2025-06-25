@@ -1,6 +1,7 @@
 out_dir: results
 metric_best: mae
 metric_agg: argmin
+accelerator: "cuda:0"
 num_workers: 4
 mlflow:
   use: False

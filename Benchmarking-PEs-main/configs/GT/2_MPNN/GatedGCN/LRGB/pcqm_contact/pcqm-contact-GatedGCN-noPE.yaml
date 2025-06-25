@@ -1,4 +1,5 @@
 out_dir: results
+accelerator: "cuda:0"
 metric_best: mrr
 num_workers: 4
 mlflow:

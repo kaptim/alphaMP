@@ -1,4 +1,5 @@
 out_dir: results
+accelerator: "cuda:0"
 metric_best: f1
 wandb:
   use: True

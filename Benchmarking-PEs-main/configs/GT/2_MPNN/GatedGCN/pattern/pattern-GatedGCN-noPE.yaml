@@ -1,5 +1,6 @@
 out_dir: results
 metric_best: accuracy-SBM
+accelerator: "cuda:0"
 wandb:
   use: True
   project: async_pe
