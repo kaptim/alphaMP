@@ -52,7 +52,6 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 # configs/GT/0_bench/GRIT/mnist/mnist-GRIT-RRWP.yaml
 # configs/GT/0_bench/GRIT/pattern/pattern-GRIT-RRWP.yaml
 # configs/GT/0_bench/GRIT/zinc/zinc-GRIT-RRWP.yaml
-C:\python_code\eth\thesis\code\Benchmarking-PEs-main\configs\GT\2_MPNN\GatedGCN\LRGB\COCO\coco-GatedGCN-noPE.yaml
 
 # configs/GT/2_MPNN/GatedGCN/cifar10/cifar10-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/cluster/cluster-GatedGCN-noPE.yaml

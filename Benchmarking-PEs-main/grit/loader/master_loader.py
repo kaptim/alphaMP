@@ -1525,7 +1525,9 @@ def preformat_PCQM4Mv2Contact(dataset_dir, name):
         raise e
 
     split_name = name.split("-", 1)[1]
-    dataset = PygPCQM4Mv2ContactDataset(dataset_dir, subset="530k")
+    dataset = PygPCQM4Mv2ContactDataset(
+        dataset_dir, subset="530k", pre_transform=NetworkAnalysis()
+    )
     # Inductive graph-level split (there is no train/test edge split).
     s_dict = dataset.get_idx_split(split_name)
     dataset.split_idxs = [s_dict[s] for s in ["train", "val", "test"]]
