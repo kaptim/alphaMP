@@ -1,0 +1,65 @@
+out_dir: results
+metric_best: f1
+accelerator: "cuda:0"
+wandb:
+  use: True
+  project: async_pe
+  name: "Pascal-VOC-GINE-noPE"
+  entity: tkrappel-eth-zurich
+dataset:
+  dir: ../datasets
+  format: PyG-VOCSuperpixels
+  name: edge_wt_region_boundary
+  slic_compactness: 30
+  task: graph  # Even if VOC is node-level task, this needs to be set as 'graph'
+  task_type: classification
+  transductive: False
+  node_encoder: True
+  node_encoder_name: VOCNode #+EquivStableLapPE
+  node_encoder_bn: False
+  edge_encoder: True
+  edge_encoder_name: VOCEdge
+  edge_encoder_bn: False
+  centrality_min: 0
+  centrality_max: 0.5 # needs to be set to correctly reflect the dataset
+posenc_EquivStableLapPE:
+  enable: False
+  eigen:
+    laplacian_norm: none
+    eigvec_norm: L2
+    max_freqs: 10
+  model: DeepSet
+  dim_pe: 16
+  layers: 2
+  raw_norm_type: none
+train:
+  mode: custom
+  batch_size: 50
+  eval_period: 1
+  ckpt_period: 100
+  eval_smoothing_metrics: True
+model:
+  type: custom_gnn
+  loss_fun: weighted_cross_entropy
+  alpha: 1.0 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
+  alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
+  alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
+  centrality_range: 0.0 # 0: no centrality information considered
+  use_coloring: False
+gnn:
+  head: inductive_node
+  layers_pre_mp: 0
+  layers_mp: 10
+  layers_post_mp: 2
+  dim_inner: 95
+  layer_type: gineconv
+  act: gelu
+  residual: True
+  dropout: 0.2
+optim:
+  optimizer: adamW
+  weight_decay: 0.0
+  base_lr: 0.001
+  max_epoch: 200
+  scheduler: cosine_with_warmup
+  num_warmup_epochs: 10

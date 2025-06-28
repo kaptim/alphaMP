@@ -63,6 +63,8 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 # configs/GT/2_MPNN/GatedGCN/mnist/mnist-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/pattern/pattern-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml
+
+# configs/GT/2_MPNN/GIN/cifar10/cifar10-GIN-noPE.yaml
 ```
 
 ### Implemented Graph Transformers with Sparse Attention
