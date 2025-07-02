@@ -182,7 +182,7 @@ def plot_results():
 def plot_results_pe():
     # keep columns needed for plotting
     relevant_cols = [
-        "dataset.name",
+        "name",
         "metric_best",
         "model.alpha",
         "model.use_coloring",
@@ -200,6 +200,7 @@ def plot_results_pe():
         "train.batch_size",
         "best/epoch",
         "best/test_loss",
+        "best/train_loss",
         "best/test_mae",
         "best/test_accuracy-SBM",
         "best/test_accuracy",
@@ -207,6 +208,28 @@ def plot_results_pe():
         "best/test_f1",
     ]
     raw_data = pd.read_csv(get_data_csv_path(True)).loc[:, relevant_cols]
+    raw_data["model"] = raw_data["name"]
+    raw_data["name"] = raw_data["name"]
+    raw_data["model"] = raw_data["name"]
+
+    # convert metric columns for easier plotting
+    raw_data["best/metric"] = (
+        raw_data["best/test_mae"].fillna(0)
+        + raw_data["best/test_accuracy-SBM"].fillna(0)
+        + raw_data["best/test_accuracy"].fillna(0)
+        + raw_data["best/test_ap"].fillna(0)
+        + raw_data["best/test_f1"].fillna(0)
+    )
+    raw_data["best/metric_name"] = str(np.nan)
+    for metric in [
+        "best/test_mae",
+        "best/test_accuracy-SBM",
+        "best/test_accuracy",
+        "best/test_ap",
+        "best/test_f1",
+    ]:
+        raw_data.loc[raw_data[metric].notnull(), "best/metric_name"] = metric
+        raw_data.drop(metric, axis=1, inplace=True)
 
 
 def plot_centrality():

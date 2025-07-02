@@ -40,7 +40,7 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: GPSModel
+  type: GritTransformer
   loss_fun: cross_entropy
   edge_decoding: dot
   graph_pooling: mean
@@ -50,7 +50,7 @@ model:
   centrality_range: 0.0 # 0: no centrality information considered
   use_coloring: False
 gt:  # Hyperparameters optimized for ~100k budget.
-  layer_type: CustomGatedGCN+Transformer
+  layer_type: GritTransformer
   layers: 3
   n_heads: 4
   dim_hidden: 52  # `gt.dim_hidden` must match `gnn.dim_inner`
@@ -60,6 +60,13 @@ gt:  # Hyperparameters optimized for ~100k budget.
   batch_norm: True
   sparse: False
   update_e: True
+  attn:
+    clamp: 5.
+    act: 'relu'
+    full_attn: True
+    edge_enhance: True
+    O_e: True
+    norm_e: True
 gnn:
   head: default
   layers_pre_mp: 0
