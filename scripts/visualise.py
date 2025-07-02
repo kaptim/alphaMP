@@ -4,9 +4,11 @@ import numpy as np
 import pandas as pd
 import os
 
-PLOT_FOLDER = os.path.join(
+PLOT_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plots")
+PLOT_FOLDER_CENTRALITY = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "plots\\centrality"
 )
+PLOT_FOLDER_PE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plots\\pe")
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "plot_data")
 
 
@@ -179,6 +181,52 @@ def plot_results():
                     )
 
 
+def plot_score_boxplot_pe(raw_data: pd.DataFrame, dataset, local_mp_type, pe):
+    df_plot = raw_data[
+        (raw_data["dataset"] == dataset)
+        & (raw_data["model"] == local_mp_type)
+        & (raw_data["PE"] == pe)
+    ]
+
+    # create a list of numpy arrays (necessary for boxplot plotting)
+    # TODO: better labels
+    df_plot_arr_list = {
+        "_".join([str(k) for k in key]): group["best/metric"].to_numpy()
+        for key, group in df_plot.groupby(
+            by=[
+                "model.alpha",
+                "model.alpha_node_flag",
+                "model.alpha_edge_flag",
+                "optim.base_lr",
+                "optim.max_epoch",
+                "layers",
+                "model.centrality_range",
+                "model.use_coloring",
+                "dropout",
+            ]
+        )
+    }
+
+    plt.boxplot(
+        list(df_plot_arr_list.values()),
+        positions=[i for i in range(len(df_plot_arr_list))],
+        tick_labels=list(df_plot_arr_list.keys()),
+    )
+    plt.title(dataset + ", " + local_mp_type + ", " + pe)
+    plt.xticks(size=3)
+    plt.xlabel("Experiments")
+    metrics = df_plot["metric_best"].unique().tolist()
+    if len(metrics) > 1:
+        raise ValueError("Different metrics used")
+    plt.ylabel(metrics[0])
+    plt.savefig(
+        PLOT_FOLDER_PE + "/" + dataset + "_" + local_mp_type + "_" + pe,
+        bbox_inches="tight",
+        dpi=300,
+    )
+    plt.close()
+
+
 def plot_results_pe():
     # keep columns needed for plotting
     relevant_cols = [
@@ -190,6 +238,7 @@ def plot_results_pe():
         "model.alpha_node_flag",
         "model.centrality_range",
         "optim.base_lr",
+        "optim.max_epoch",
         "model.type",
         "gnn.layer_type",
         "gnn.dropout",
@@ -208,9 +257,11 @@ def plot_results_pe():
         "best/test_f1",
     ]
     raw_data = pd.read_csv(get_data_csv_path(True)).loc[:, relevant_cols]
-    raw_data["model"] = raw_data["name"]
-    raw_data["name"] = raw_data["name"]
-    raw_data["model"] = raw_data["name"]
+    raw_data["name"] = raw_data["name"].str.upper()
+    raw_data["dataset"] = raw_data["name"].str.split("-").str[:-2].str.join("-")
+    raw_data["model"] = raw_data["name"].str.split("-").str[-2]
+    raw_data["PE"] = raw_data["name"].str.split("-").str[-1]
+    raw_data = raw_data.drop("name", axis=1)
 
     # convert metric columns for easier plotting
     raw_data["best/metric"] = (
@@ -220,16 +271,45 @@ def plot_results_pe():
         + raw_data["best/test_ap"].fillna(0)
         + raw_data["best/test_f1"].fillna(0)
     )
-    raw_data["best/metric_name"] = str(np.nan)
-    for metric in [
-        "best/test_mae",
-        "best/test_accuracy-SBM",
-        "best/test_accuracy",
-        "best/test_ap",
-        "best/test_f1",
-    ]:
-        raw_data.loc[raw_data[metric].notnull(), "best/metric_name"] = metric
-        raw_data.drop(metric, axis=1, inplace=True)
+    raw_data = raw_data.drop(
+        [
+            "best/test_mae",
+            "best/test_accuracy-SBM",
+            "best/test_accuracy",
+            "best/test_ap",
+            "best/test_f1",
+        ],
+        axis=1,
+    )
+
+    # only keep gnn or gt columns depending on the model used
+    raw_data = raw_data.rename(columns={"gnn.layers_mp": "gnn.layers"})
+    for col in ["dropout", "layer_type", "layers"]:
+        raw_data[col] = np.nan
+        gnn_col = ".".join(["gnn", col])
+        gt_col = ".".join(["gt", col])
+        raw_data.loc[raw_data["model.type"] == "custom_gnn", col] = raw_data.loc[
+            raw_data["model.type"] == "custom_gnn", gnn_col
+        ]
+        raw_data.loc[raw_data["model.type"] != "custom_gnn", col] = raw_data.loc[
+            raw_data["model.type"] != "custom_gnn", gt_col
+        ]
+        raw_data = raw_data.drop([gnn_col, gt_col], axis=1)
+
+    # plot for each dataset, model, PE
+    datasets = list(raw_data["dataset"].unique())
+    for dataset in datasets:
+        dataset_models = list(
+            raw_data[raw_data["dataset"] == dataset]["model"].unique()
+        )
+        for model in dataset_models:
+            pes = list(
+                raw_data[
+                    (raw_data["dataset"] == dataset) & (raw_data["model"] == model)
+                ]["PE"].unique()
+            )
+            for pe in pes:
+                plot_score_boxplot_pe(raw_data, dataset, model, pe)
 
 
 def plot_centrality():
@@ -245,7 +325,7 @@ def plot_centrality():
         plt.ylabel("Frequency")
 
         plot_filename = os.path.join(
-            PLOT_FOLDER,
+            PLOT_FOLDER_CENTRALITY,
             f"{dataset}_centrality_histogram",
         )
         plt.savefig(
