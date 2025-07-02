@@ -52,6 +52,7 @@ gnn:
   layers_mp: 6
   layers_post_mp: 1
   dim_inner: 120
+  batchnorm: True
   layer_type: gin_conv
   act: gelu
   residual: True

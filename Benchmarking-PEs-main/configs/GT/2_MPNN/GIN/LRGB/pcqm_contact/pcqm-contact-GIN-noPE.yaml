@@ -51,7 +51,7 @@ gnn:
   act: gelu
   residual: True
   dropout: 0.1
-  batchnorm: False
+  batchnorm: True
 optim:
   clip_grad_norm: True
   optimizer: adamW

@@ -57,7 +57,7 @@ gnn:
   layers_post_mp: 3
   dim_inner: 52  # `gt.dim_hidden` must match `gnn.dim_inner`
   layer_type: gin_conv
-  batchnorm: False
+  batchnorm: True
   act: relu
   dropout: 0.0
   agg: mean
