@@ -53,18 +53,22 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 # configs/GT/0_bench/GRIT/pattern/pattern-GRIT-RRWP.yaml
 # configs/GT/0_bench/GRIT/zinc/zinc-GRIT-RRWP.yaml
 
-# configs/GT/2_MPNN/GatedGCN/cifar10/cifar10-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/cluster/cluster-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/LRGB/COCO/coco-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/LRGB/pcqm_contact/pcqm-contact-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/LRGB/peptides_func/peptides-func-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/LRGB/peptides_struct/peptides-struct-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/LRGB/VOC/voc-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/mnist/mnist-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/pattern/pattern-GatedGCN-noPE.yaml
-# configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml
+# GatedGCN
+# GIN
+# GINE
 
-# configs/GT/2_MPNN/GIN/cifar10/cifar10-GIN-noPE.yaml
+# configs/GT/2_MPNN/GINE/cifar10/cifar10-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/cluster/cluster-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/LRGB/COCO/coco-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/LRGB/pcqm_contact/pcqm-contact-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/LRGB/peptides_func/peptides-func-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/LRGB/peptides_struct/peptides-struct-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/LRGB/VOC/voc-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/mnist/mnist-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/pattern/pattern-GINE-noPE.yaml
+# configs/GT/2_MPNN/GINE/zinc/zinc-GINE-noPE.yaml
+
+# configs/GT/2_MPNN/GINE/cifar10/cifar10-GINE-noPE.yaml
 ```
 
 ### Implemented Graph Transformers with Sparse Attention

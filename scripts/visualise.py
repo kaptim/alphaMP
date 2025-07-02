@@ -10,15 +10,17 @@ PLOT_FOLDER = os.path.join(
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "plot_data")
 
 
-def get_data_csv_path():
+def get_data_csv_path(pe=False):
     files = os.listdir(DATA_FOLDER)
     csvs = [f for f in files if f.endswith(".csv")]
 
-    # there should only be one csv (always overwritten)
-    if len(csvs) > 1:
-        raise ValueError("Only one .csv file allowed in the /scripts folder")
+    # there should only be two csvs (always overwritten)
+    if len(csvs) != 2:
+        raise ValueError("Only two .csv files allowed")
 
-    return DATA_FOLDER + "/" + csvs[0]
+    csvs_filtered = [c for c in csvs if (c.find("pe") >= 0) == pe]
+
+    return DATA_FOLDER + "/" + csvs_filtered[0]
 
 
 def get_centrality_paths():
@@ -28,7 +30,7 @@ def get_centrality_paths():
 
 
 def get_str_key(key):
-    # simply function to make the x axis labels of each boxplot
+    # make the x axis labels of each boxplot
     # more readable
     return (
         key[0].astype(str)
@@ -177,6 +179,36 @@ def plot_results():
                     )
 
 
+def plot_results_pe():
+    # keep columns needed for plotting
+    relevant_cols = [
+        "dataset.name",
+        "metric_best",
+        "model.alpha",
+        "model.use_coloring",
+        "model.alpha_edge_flag",
+        "model.alpha_node_flag",
+        "model.centrality_range",
+        "optim.base_lr",
+        "model.type",
+        "gnn.layer_type",
+        "gnn.dropout",
+        "gnn.layers_mp",
+        "gt.layer_type",
+        "gt.dropout",
+        "gt.layers",
+        "train.batch_size",
+        "best/epoch",
+        "best/test_loss",
+        "best/test_mae",
+        "best/test_accuracy-SBM",
+        "best/test_accuracy",
+        "best/test_ap",
+        "best/test_f1",
+    ]
+    raw_data = pd.read_csv(get_data_csv_path(True)).loc[:, relevant_cols]
+
+
 def plot_centrality():
     paths = get_centrality_paths()
     for path in paths:
@@ -201,8 +233,7 @@ def plot_centrality():
 
 
 def main():
-    plot_results()
-    # plot_centrality()
+    plot_results_pe()
 
 
 if __name__ == "__main__":
