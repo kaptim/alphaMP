@@ -7,14 +7,15 @@ accelerator: "cuda:0"
 num_workers: 4
 mlflow:
   use: False
-  project: Exp
+  project: async_pe
   name: zinc-GatedGCN-RWSE
 wandb:
   use: True
-  project: "PEGT"
-  name: "ZINC-GatedGCN-RWSE"
-  entity: jiaqing
+  project: async_pe
+  name: ZINC-GatedGCN-RWSE
+  entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets
   format: PyG-ZINC
   name: subset
   task: graph
@@ -28,6 +29,8 @@ dataset:
   edge_encoder_name: TypeDictEdge
   edge_encoder_num_types: 4
   edge_encoder_bn: False
+  centrality_min: 0
+  centrality_max: 0.8 # needs to be set to correctly reflect the dataset
 posenc_RWSE:
   enable: True
   kernel:
@@ -47,10 +50,15 @@ model:
   loss_fun: l1
   edge_decoding: dot
   graph_pooling: add
+  alpha: 1.0 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
+  alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
+  alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
+  centrality_range: 0.0 # 0: no centrality information considered
+  use_coloring: False
 gnn: # decoder --> san_graph = MLP + pooling
   head: san_graph
   layers_pre_mp: 0
-  layers_mp: 4
+  layers_mp: 6
   layers_post_mp: 3  # Not used when `gnn.head: san_graph`
   dim_inner: 64  # `gt.dim_hidden` must match `gnn.dim_inner`
   batchnorm: True
@@ -63,7 +71,7 @@ optim:
   clip_grad_norm: True
   optimizer: adamW
   weight_decay: 1e-5
-  base_lr: 1e-3
+  base_lr: 0.001
   max_epoch: 1700
   num_warmup_epochs: 50
   scheduler: cosine_with_warmup
