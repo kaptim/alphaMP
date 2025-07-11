@@ -38,6 +38,9 @@ def process_batch_idx(batch_idx, true):
     # Pad batch index for hybrid tasks (set batch index for graph heads to -1)
     if (pad := true.shape[0] - batch_idx.shape[0]) > 0:
         if "hybrid" not in cfg.gnn.head:
+            if cfg.dataset.name == "PCQM4Mv2Contact-shuffle":
+                # would otherwise break training of contact dataset
+                return batch_idx
             raise ValueError(
                 "Evaluating non-hybrid task. Mismatched dimensions"
                 f" between labels ({true.shape=}) and batch index "
