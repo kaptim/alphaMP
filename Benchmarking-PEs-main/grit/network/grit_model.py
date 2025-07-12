@@ -134,85 +134,85 @@ class GritTransformer(torch.nn.Module):
         return batch
 
     def get_node_mask(self, batch):
-        # return mask for the batch based on cfg.model.alpha and cfg.model.centrality_range
+        # return mask for the batch based on cfg.async_update.alpha and cfg.async_update.metric_range
         # training: alpha is used as the probability for a bernoulli distribution
-        # inference: depends on cfg.model.alpha_node_flag
-        if cfg.model.alpha > 1.0 or cfg.model.alpha < 0:
+        # inference: depends on cfg.async_update.alpha_node_flag
+        if cfg.async_update.alpha > 1.0 or cfg.async_update.alpha < 0:
             raise RuntimeError(f"Alpha value should be in [0,1]")
         if (
-            cfg.model.centrality_range > cfg.model.alpha
-            or cfg.model.centrality_range < 0
+            cfg.async_update.metric_range > cfg.async_update.alpha
+            or cfg.async_update.metric_range < 0
         ):
-            raise RuntimeError(f"Centrality range value should be in [0,alpha]")
+            raise RuntimeError(f"Metric range value should be in [0,alpha]")
         alphas = torch.full(
             (batch.x.shape[0], 1),
-            fill_value=cfg.model.alpha - cfg.model.centrality_range,
+            fill_value=cfg.async_update.alpha - cfg.async_update.metric_range,
             device=batch.x.device,
         )
-        # adapt alphas using the normalised centrality information of the nodes
-        # clamp centrality values to ensure that the normalised values are in [0,1]
+        # adapt alphas using the normalised metric information of the nodes
+        # clamp metric values to ensure that the normalised values are in [0,1]
         alphas += (
             (
                 torch.clamp(
-                    batch.centrality,
-                    min=cfg.dataset.centrality_min,
-                    max=cfg.dataset.centrality_max,
+                    batch.get(cfg.async_update.metric),
+                    min=cfg.async_update.metric_min,
+                    max=cfg.async_update.metric_max,
                 )
-                - cfg.dataset.centrality_min
+                - cfg.async_update.metric_min
             )
-            / (cfg.dataset.centrality_max - cfg.dataset.centrality_min)
-        ).unsqueeze(-1) * cfg.model.centrality_range
+            / (cfg.async_update.metric_max - cfg.async_update.metric_min)
+        ).unsqueeze(-1) * cfg.async_update.metric_range
         if self.training:
             return torch.bernoulli(alphas).int()
         else:
-            if cfg.model.alpha_node_flag == "a":
+            if cfg.async_update.alpha_node_flag == "a":
                 return alphas
-            elif cfg.model.alpha_node_flag == "p":
+            elif cfg.async_update.alpha_node_flag == "p":
                 # same procedure for training and inference
                 return torch.bernoulli(alphas).int()
-            elif cfg.model.alpha_node_flag == "n":
+            elif cfg.async_update.alpha_node_flag == "n":
                 # no mask during inference
                 return torch.full(
                     (batch.x.shape[0], 1), fill_value=1, device=batch.x.device
                 )
             else:
                 raise RuntimeError(
-                    f"Unexpected alpha flag: {cfg.model.alpha_node_flag}"
+                    f"Unexpected alpha flag: {cfg.async_update.alpha_node_flag}"
                 )
 
     def get_edge_mask(self, batch, node_mask):
         # mask updates for edges which are between two masked nodes
-        if self.training or cfg.model.alpha_node_flag == "p":
+        if self.training or cfg.async_update.alpha_node_flag == "p":
             return torch.logical_or(
                 node_mask[batch.edge_index[0]], node_mask[batch.edge_index[1]]
             ).int()
         else:
-            if cfg.model.alpha_node_flag == "n":
+            if cfg.async_update.alpha_node_flag == "n":
                 # all nodes are used => all edges are used (in the same way)
                 return torch.full(
                     (batch.edge_index.shape[1], 1),
                     fill_value=1,
                     device=batch.x.device,
                 )
-            elif cfg.model.alpha_node_flag == "a":
-                if cfg.model.centrality_range == 0:
+            elif cfg.async_update.alpha_node_flag == "a":
+                if cfg.async_update.metric_range == 0:
                     return torch.full(
                         (batch.edge_index.shape[1], 1),
-                        fill_value=cfg.model.alpha,
+                        fill_value=cfg.async_update.alpha,
                         device=batch.x.device,
                     )
-                # centrality considered => need to handle different alpha values at the endpoints
-                if cfg.model.alpha_edge_flag == "a":
+                # metric considered => need to handle different alpha values at the endpoints
+                if cfg.async_update.alpha_edge_flag == "a":
                     return (
                         node_mask[batch.edge_index[0]] + node_mask[batch.edge_index[1]]
                     ) / 2
-                elif cfg.model.alpha_edge_flag == "m":
+                elif cfg.async_update.alpha_edge_flag == "m":
                     return torch.maximum(
                         node_mask[batch.edge_index[0]], node_mask[batch.edge_index[1]]
                     )
                 else:
                     raise RuntimeError(
-                        f"Unexpected edge alpha flag: {cfg.model.alpha_edge_flag}"
+                        f"Unexpected edge alpha flag: {cfg.async_update.alpha_edge_flag}"
                     )
 
     def color_update(self, batch):
@@ -240,7 +240,7 @@ class GritTransformer(torch.nn.Module):
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
         # evaluation: depends on alpha_node_flag
-        if cfg.model.use_coloring:
+        if cfg.async_update.use_coloring:
             self.color_update(batch)
             return
         for layer in self.layers:

@@ -8,7 +8,7 @@ def set_cfg_posenc(cfg):
 
     cfg.async_update = CN()
 
-    cfg.async_update.metric = None  # centrality, coloring, degree
+    cfg.async_update.metric = None  # centrality, degree
     cfg.async_update.metric_min = 0
     cfg.async_update.metric_max = 1.0
     cfg.async_update.metric_range = 0.0  # 0: no metric information considered
@@ -20,3 +20,4 @@ def set_cfg_posenc(cfg):
     )
     cfg.async_update.alpha_node_flag = "a"  # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
     cfg.async_update.alpha_edge_flag = "a"  # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
+    cfg.async_update.use_coloring = False
