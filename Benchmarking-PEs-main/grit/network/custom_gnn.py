@@ -78,12 +78,16 @@ class CustomGNN(torch.nn.Module):
             raise RuntimeError(f"Centrality range value should be in [0,alpha]")
         alphas = torch.full(
             (batch.x.shape[0], 1),
-            fill_value=cfg.model.alpha - cfg.model.centrality_range,
+            fill_value=(
+                cfg.model.alpha
+                if cfg.model.centrality_rev
+                else cfg.model.alpha - cfg.model.centrality_range
+            ),
             device=batch.x.device,
         )
         # adapt alphas using the normalised centrality information of the nodes
         # clamp centrality values to ensure that the normalised values are in [0,1]
-        alphas += (
+        normalised_centrality = (
             (
                 torch.clamp(
                     batch.centrality,
@@ -94,6 +98,11 @@ class CustomGNN(torch.nn.Module):
             )
             / (cfg.dataset.centrality_max - cfg.dataset.centrality_min)
         ).unsqueeze(-1) * cfg.model.centrality_range
+        alphas += (
+            -normalised_centrality
+            if cfg.model.centrality_rev
+            else normalised_centrality
+        )
         if self.training:
             return torch.bernoulli(alphas).int()
         else:
