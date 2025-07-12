@@ -43,15 +43,16 @@ train:
   enable_ckpt: True  # Checkpointing can now be disabled to save I/O when e.g. just benchmarking.
   ckpt_best: True  # WARNING: Checkpoint every epoch a better model is found may increase I/O significantly.
   ckpt_clean: True # Delete old ckpt each time.
-# async_update:
-#   metrie: centrality
-#   metric_min: 0
-#   metric_max: 0.8 # needs to be set to correctly reflect the dataset
-#   metric_range: 0.0 # 0: no centrality information considered
-#   alpha: 1.0 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
-#   alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
-#   alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
-#   use_coloring: False
+async_update:
+  metric: centrality
+  metric_min: 0
+  metric_max: 0.8 # needs to be set to correctly reflect the dataset
+  metric_range: 0.1 # 0: no centrality information considered
+  metric_pos: False
+  alpha: 1.0 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
+  alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
+  alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
+  use_coloring: False
 model:
   type: custom_gnn
   loss_fun: l1

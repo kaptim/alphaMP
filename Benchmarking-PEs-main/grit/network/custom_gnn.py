@@ -74,6 +74,7 @@ class CustomGNN(torch.nn.Module):
         if (
             cfg.async_update.metric_range > cfg.async_update.alpha
             or cfg.async_update.metric_range < 0
+            or (cfg.async_update.metric_range != 0 and cfg.async_update.metric is None)
         ):
             raise RuntimeError(f"Metric range value should be in [0,alpha]")
         alphas = torch.full(
@@ -87,21 +88,21 @@ class CustomGNN(torch.nn.Module):
         )
         # adapt alphas using the normalised metric information of the nodes
         # clamp metric values to ensure that the normalised values are in [0,1]
-        # TODO: check
-        normalised_metric = (
-            (
-                torch.clamp(
-                    batch.get(cfg.async_update.metric),
-                    min=cfg.async_update.metric_min,
-                    max=cfg.async_update.metric_max,
+        if cfg.async_update.metric is not None:
+            normalised_metric = (
+                (
+                    torch.clamp(
+                        batch.get(cfg.async_update.metric),
+                        min=cfg.async_update.metric_min,
+                        max=cfg.async_update.metric_max,
+                    )
+                    - cfg.async_update.metric_min
                 )
-                - cfg.async_update.metric_min
+                / (cfg.async_update.metric_max - cfg.async_update.metric_min)
+            ).unsqueeze(-1) * cfg.async_update.metric_range
+            alphas += (
+                normalised_metric if cfg.async_update.metric_pos else -normalised_metric
             )
-            / (cfg.async_update.metric_max - cfg.async_update.metric_min)
-        ).unsqueeze(-1) * cfg.async_update.metric_range
-        alphas += (
-            normalised_metric if cfg.async_update.metric_pos else -normalised_metric
-        )
         if self.training:
             return torch.bernoulli(alphas).int()
         else:
