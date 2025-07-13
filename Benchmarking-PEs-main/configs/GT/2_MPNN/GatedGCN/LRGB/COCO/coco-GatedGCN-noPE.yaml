@@ -20,8 +20,6 @@ dataset:
   edge_encoder: True
   edge_encoder_name: COCOEdge
   edge_encoder_bn: False
-  centrality_min: 0
-  centrality_max: 1.0 # needs to be set to correctly reflect the dataset
 posenc_EquivStableLapPE:
   enable: False
   eigen:
@@ -38,14 +36,19 @@ train:
   eval_period: 1
   ckpt_period: 100
   eval_smoothing_metrics: True
+async_update:
+  metric: centrality
+  metric_min: 0
+  metric_max: 0.75 # needs to be set to correctly reflect the dataset and the metric
+  metric_range: 0.0
+  metric_pos: True
+  alpha: 1.0
+  alpha_node_flag: a
+  alpha_edge_flag: a
+  use_coloring: False
 model:
   type: custom_gnn
   loss_fun: weighted_cross_entropy
-  alpha: 1.0 # synchronous: 1.0, higher alpha -> update more nodes in one iteration
-  alpha_node_flag: a # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
-  alpha_edge_flag: a # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
-  centrality_range: 0.0 # 0: no centrality information considered
-  use_coloring: False
 gnn:
   head: inductive_node
   layers_pre_mp: 0
