@@ -43,6 +43,16 @@ train:
   eval_period: 1
   ckpt_period: 100
   eval_smoothing_metrics: True
+async_update:
+  metric: centrality
+  metric_min: 0
+  metric_max: 0.7 # needs to be set to correctly reflect the dataset and the metric
+  metric_range: 0.0
+  metric_pos: True
+  alpha: 1.0
+  alpha_node_flag: a
+  alpha_edge_flag: a
+  use_coloring: False
 model:
   type: custom_gnn
   loss_fun: l1
