@@ -11,7 +11,7 @@ class NetworkAnalysis(BaseTransform):
     def __call__(self, data: Data) -> Data:
         g = to_networkx(data, to_undirected=True)
         self.get_coloring(g, data)
-        self.get_centrality(g, data)
+        self.get_betweenness_centrality(g, data)
         return data
 
     def get_coloring(self, g, data):
@@ -28,7 +28,7 @@ class NetworkAnalysis(BaseTransform):
         # save as data attribute
         data.coloring = color_mask
 
-    def get_centrality(self, g, data):
+    def get_betweenness_centrality(self, g, data):
         # compute the centrality for each node of a graph
         centrality = nx.betweenness_centrality(g)
         # insert 0 for each disconnected node
@@ -38,3 +38,24 @@ class NetworkAnalysis(BaseTransform):
         )
         # save as data attribute
         data.centrality = centrality_mask
+
+    def get_degree_centrality_abs(self, g, data):
+        pass
+
+    def get_degree_centrality_rel(self, g, data):
+        pass
+
+    def get_closeness_centrality(self, g, data):
+        pass
+
+    def get_ev_centrality(self, g, data):
+        pass
+
+    def get_local_efficiency(self, g, data):
+        pass
+
+    def get_nb_homogeneity(self, g, data):
+        pass
+
+    def get_connectivity(self, g, data):
+        pass
