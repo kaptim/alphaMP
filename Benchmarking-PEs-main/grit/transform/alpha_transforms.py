@@ -9,16 +9,23 @@ class NetworkAnalysis(BaseTransform):
     # used as pre_transform
 
     def __call__(self, data: Data) -> Data:
+        print("let's goooo")
         g = to_networkx(data, to_undirected=True)
         self.get_coloring(g, data)
         self.get_betweenness_centrality(g, data)
+        self.get_degree_centrality(g, data)
+        self.get_closeness_centrality(g, data)
+        self.get_ev_centrality(g, data)
+        self.get_local_efficiency(g, data)
+        self.get_nb_homophily(g, data)
+        self.get_articulation_points(g, data)
         return data
 
     def get_coloring(self, g, data):
         # compute the coloring for a graph
         coloring = nx.coloring.greedy_color(g)
         # create color mask for faster updating
-        # there may be some isolated nodes
+        # there may be some disconnected nodes
         # (e.g., https://github.com/snap-stanford/ogb/issues/109)
         # which are not included in the graph so we color those nodes with the first color 0
         color_mask = torch.tensor(
@@ -39,23 +46,72 @@ class NetworkAnalysis(BaseTransform):
         # save as data attribute
         data.centrality = centrality_mask
 
-    def get_degree_centrality_abs(self, g, data):
-        pass
+    def get_degree_centrality(self, g, data):
+        centrality = nx.degree_centrality(g)
+        centrality_mask = torch.tensor(
+            [centrality[i] for i in range(len(centrality.keys()))]
+            + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
+        )
+        data.degree_centrality = centrality_mask
 
-    def get_degree_centrality_rel(self, g, data):
-        pass
+        # compute relative degree centrality
+        neighbor_degree = nx.average_neighbor_degree(g)
+        neighbor_degree_centrality = {
+            k: v / (g.number_of_nodes() - 1) for k, v in neighbor_degree.items()
+        }  # divide by maximum possible degree n-1 to get degree centrality
+        centrality_mask_rel = torch.tensor(
+            [
+                centrality[i] / neighbor_degree_centrality[i]
+                for i in range(len(centrality.keys()))
+            ]
+            + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
+        )
+        data.degree_centrality_rel = centrality_mask_rel
 
     def get_closeness_centrality(self, g, data):
-        pass
+        centrality = nx.closeness_centrality(g)
+        centrality_mask = torch.tensor(
+            [centrality[i] for i in range(len(centrality.keys()))]
+            + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
+        )
+        data.closeness_centrality = centrality_mask
 
     def get_ev_centrality(self, g, data):
-        pass
+        centrality = nx.eigenvector_centrality(g)
+        centrality_mask = torch.tensor(
+            [centrality[i] for i in range(len(centrality.keys()))]
+            + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
+        )
+        data.eigenvector_centrality = centrality_mask
 
     def get_local_efficiency(self, g, data):
-        pass
+        # local efficiency: average global efficiency
+        # of the subgraph induced by the neighbors of the node
+        local_efficiency = {v: nx.global_efficiency(g.subgraph(g[v])) for v in g}
+        # taken from nx.local_efficiency()
+        efficiency_mask = torch.tensor(
+            [local_efficiency[i] for i in range(len(local_efficiency.keys()))]
+            + [0 for i in range(len(local_efficiency.keys()), data.x.shape[0])]
+        )
+        data.local_efficiency = efficiency_mask
 
-    def get_nb_homogeneity(self, g, data):
-        pass
+    def get_nb_homophily(self, g, data):
+        # taken from Geom-GCN: Geometric Graph Convolutional Networks
+        nb_homophily = torch.zeros(data.x.shape[0])
+        for edge in g.edges:
+            if torch.equal(data.x[edge[0]], data.x[edge[1]]):
+                nb_homophily[edge[0]] += 1
+                nb_homophily[edge[1]] += 1
+        nb_homophily_normalised = nb_homophily / torch.tensor(
+            [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
+        )  # if statement: avoid div by 0 error in case of disconnected nodes
+        data.nb_homophily = nb_homophily_normalised
 
-    def get_connectivity(self, g, data):
-        pass
+    def get_articulation_points(self, g, data):
+        # mark all articulation points in the graph
+        articulation_points = nx.articulation_points(g)
+        articulation_points_mask = [0 for i in range(g.number_of_nodes())]
+        for pt in list(articulation_points):
+            articulation_points_mask[pt] = 1
+
+        data.articulation_points = torch.tensor(articulation_points_mask)
