@@ -85,33 +85,37 @@ def get_unpacked_list(l: list):
 
 
 def get_aligned_config_list(config: list):
-    # TODO: NOT USED IN PE (BUT MAYBE LATER)
     # need to combine certain columns, add others
-    # since some data may have been missing in earlier models
-    recurrent_col = "model.recurrent"
-    lr_col = "model.lr"
-    coloring_col = "model.use_coloring"
-    centrality_col = "model.centrality_range"
-    csv_flag_col = "logs.csv_flag"
-    wandb_name_col = "logs.wandb_name"
+    # since some data may have been missing in earlier runs
+    alpha_col = "async_update.alpha"
+    metric_col = "async_update.metric"
+    metric_max_col = "async_update.metric_max"
+    metric_min_col = "async_update.metric_min"
+    metric_pos_col = "async_update.metric_pos"
+    metric_range_col = "async_update.metric_range"
+    coloring_col = "async_update.use_coloring"
+    edge_flag = "async_update.alpha_edge_flag"
+    node_flag = "async_update.alpha_node_flag"
+
     for c in config:
-        if recurrent_col not in c.keys():
-            # recurrent not in keys => non-recurrent architecture
-            c[recurrent_col] = False
+        if alpha_col not in c.keys():
+            c[alpha_col] = c["model.alpha"]
+        if metric_col not in c.keys():
+            c[metric_col] = "centrality"
+        if metric_max_col not in c.keys():
+            c[metric_max_col] = c["dataset.centrality_max"]
+        if metric_min_col not in c.keys():
+            c[metric_min_col] = c["dataset.centrality_min"]
+        if metric_pos_col not in c.keys():
+            c[metric_pos_col] = True
+        if metric_range_col not in c.keys():
+            c[metric_range_col] = c["model.centrality_range"]
         if coloring_col not in c.keys():
-            # coloring not in keys => non-coloring architecture
-            c[coloring_col] = False
-        if centrality_col not in c.keys():
-            # centrality not in keys => does not use centrality
-            c[centrality_col] = 0
-        if lr_col not in c.keys():
-            c[lr_col] = c["training.lr"]
-        if csv_flag_col not in c.keys():
-            # csv flag not in keys => csv logging was active
-            c[csv_flag_col] = True
-        if wandb_name_col not in c.keys():
-            # no wandb yet
-            c[wandb_name_col] = ""
+            c[coloring_col] = c["model.use_coloring"]
+        if edge_flag not in c.keys():
+            c[edge_flag] = c["model.alpha_edge_flag"]
+        if node_flag not in c.keys():
+            c[node_flag] = c["model.alpha_node_flag"]
     return config
 
 
@@ -160,8 +164,11 @@ def main():
     # they should be unpacked to create a more useful df
     config_list_up = get_unpacked_list(config_list)
     summary_list_up = get_unpacked_list(summary_list)
+    # some columns in config_list have different names but contain the same values
+    # need to keep only one of these columns
+    config_list_aligned = get_aligned_config_list(config_list_up)
     # combine the lists into one
-    combined_list = get_combined_list(name_list, config_list_up, summary_list_up)
+    combined_list = get_combined_list(name_list, config_list_aligned, summary_list_up)
     # save the list in a csv
     save_dict_list_to_csv(combined_list)
 
