@@ -181,46 +181,100 @@ def plot_results():
                     )
 
 
-def plot_score_boxplot_pe(raw_data: pd.DataFrame, dataset, local_mp_type, pe):
+def get_str_key_pe(key):
+    if str(key) == "True":
+        return "T"
+    elif str(key) == "False":
+        return "F"
+    elif len(str(key).split("_")) > 1:
+        return "".join([s[0] for s in str(key).split("_")])
+    elif len(str(key)) > 6:
+        return str(key)[:6]
+    else:
+        return str(key)
+
+
+def plot_score_boxplot_pe(raw_data: pd.DataFrame, dataset, model, pe, best=True):
+    # mode: either only plot the best results (with > 1 run) per (a)synchronous setting
+    # (specific lr, number of layers, maximum number of epochs, dropout)
+    # or plot all results
     df_plot = raw_data[
         (raw_data["dataset"] == dataset)
-        & (raw_data["model"] == local_mp_type)
+        & (raw_data["model"] == model)
         & (raw_data["PE"] == pe)
     ]
 
     # create a list of numpy arrays (necessary for boxplot plotting)
-    # TODO: better labels
+    def insert_line_breaks(caption):
+        # insert two line breaks for better readability
+        return caption[:18] + "\n" + caption[18:36] + "\n" + caption[36:]
+
     df_plot_arr_list = {
-        "_".join([str(k) for k in key]): group["best/metric"].to_numpy()
+        insert_line_breaks("_".join([get_str_key_pe(k) for k in key])): group[
+            "best/metric"
+        ].to_numpy()
         for key, group in df_plot.groupby(
             by=[
-                "model.alpha",
-                "model.alpha_node_flag",
-                "model.alpha_edge_flag",
+                "async_update.alpha",
+                "async_update.alpha_node_flag",
+                "async_update.alpha_edge_flag",
+                "async_update.metric",
+                "async_update.metric_range",
+                "async_update.metric_pos",
+                "async_update.use_coloring",
                 "optim.base_lr",
                 "optim.max_epoch",
                 "layers",
-                "model.centrality_range",
-                "model.use_coloring",
                 "dropout",
             ]
         )
     }
+    # eliminate single runs
+    df_plot_arr_list = {
+        k: v for k, v in df_plot_arr_list.items() if df_plot_arr_list[k].shape[0] > 1
+    }
+
+    if best:
+        # only keep the best (a)synchronous settings
+        unique_settings = set(
+            ["_".join(s.split("_")[:-4]) for s in df_plot_arr_list.keys()]
+        )
+        if len(unique_settings) != len(df_plot_arr_list.keys()):
+            # pick the best setting and only keep those values
+            df_plot_arr_list = {}
+            for s in unique_settings:
+                best_cfg = ""
+                best_cfg_performance = 0
+                for c in df_plot_arr_list.keys():
+                    if (
+                        c[: len(s)] == s
+                        and np.mean(df_plot_arr_list[c]) > best_cfg_performance
+                    ):
+                        best_cfg = c
+                        best_cfg_performance = df_plot_arr_list[c]
+                df_plot_arr_list[best_cfg] = best_cfg_performance
 
     plt.boxplot(
         list(df_plot_arr_list.values()),
         positions=[i for i in range(len(df_plot_arr_list))],
         tick_labels=list(df_plot_arr_list.keys()),
     )
-    plt.title(dataset + ", " + local_mp_type + ", " + pe)
-    plt.xticks(size=3)
+    plt.title(dataset + ", " + model + ", " + pe)
+    plt.xticks(size=8)
     plt.xlabel("Experiments")
     metrics = df_plot["metric_best"].unique().tolist()
     if len(metrics) > 1:
         raise ValueError("Different metrics used")
     plt.ylabel(metrics[0])
     plt.savefig(
-        PLOT_FOLDER_PE + "/" + dataset + "_" + local_mp_type + "_" + pe,
+        PLOT_FOLDER_PE
+        + "/"
+        + dataset
+        + "_"
+        + model
+        + "_"
+        + pe
+        + ("best" if best else ""),
         bbox_inches="tight",
         dpi=300,
     )
@@ -232,11 +286,13 @@ def plot_results_pe():
     relevant_cols = [
         "name",
         "metric_best",
-        "model.alpha",
-        "model.use_coloring",
-        "model.alpha_edge_flag",
-        "model.alpha_node_flag",
-        "model.centrality_range",
+        "async_update.alpha",
+        "async_update.use_coloring",
+        "async_update.alpha_edge_flag",
+        "async_update.alpha_node_flag",
+        "async_update.metric",
+        "async_update.metric_range",
+        "async_update.metric_pos",
         "optim.base_lr",
         "optim.max_epoch",
         "model.type",
@@ -255,6 +311,7 @@ def plot_results_pe():
         "best/test_accuracy",
         "best/test_ap",
         "best/test_f1",
+        "best/test_mrr_filt_self",
     ]
     raw_data = pd.read_csv(get_data_csv_path(True)).loc[:, relevant_cols]
     raw_data["name"] = raw_data["name"].str.upper()
