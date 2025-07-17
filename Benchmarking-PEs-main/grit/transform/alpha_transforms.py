@@ -23,9 +23,9 @@ class NetworkAnalysis(BaseTransform):
     def save_metric_output(self, metric_name, data, output):
         data[metric_name] = output
         # save max and min for normalisation during training
-        if output.max() > data.get(metric_name + "_max", -1):
+        if output.max() > data.get(metric_name + "_max", -float("inf")):
             data[metric_name + "_max"] = output.max()
-        if output.min() < data.get(metric_name + "_min", 1):
+        if output.min() < data.get(metric_name + "_min", float("inf")):
             data[metric_name + "_min"] = output.min()
 
     def get_coloring(self, g, data):
@@ -83,7 +83,7 @@ class NetworkAnalysis(BaseTransform):
         self.save_metric_output("closeness_centrality", data, centrality_mask)
 
     def get_ev_centrality(self, g, data):
-        centrality = nx.eigenvector_centrality(g, max_iter=1000)
+        centrality = nx.eigenvector_centrality(g, max_iter=5000)
         centrality_mask = torch.tensor(
             [centrality[i] for i in range(len(centrality.keys()))]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
@@ -115,7 +115,7 @@ class NetworkAnalysis(BaseTransform):
         nb_homophily_normalised = nb_homophily / torch.tensor(
             [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
         )  # if statement: avoid div by 0 error in case of disconnected nodes
-        self.save_metric_output("nb_homophily", data, nb_homophily_normalised)
+        self.save_metric_output("nh_homophily", data, nb_homophily_normalised)
 
     def get_articulation_points(self, g, data):
         # mark all articulation points in the graph
