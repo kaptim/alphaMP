@@ -1,3 +1,4 @@
+import json
 import torch
 import networkx as nx
 from torch_geometric.utils import to_networkx
@@ -8,8 +9,14 @@ from torch_geometric.transforms import BaseTransform
 class NetworkAnalysis(BaseTransform):
     # used as pre_transform
 
+    def __init__(self, dataset_dir):
+        super().__init__()
+        self.min_max_dict = {}
+        self.dataset_dir = dataset_dir
+
     def __call__(self, data: Data) -> Data:
         g = to_networkx(data, to_undirected=True)
+        self.update_json = False
         self.get_coloring(g, data)
         self.get_betweenness_centrality(g, data)
         self.get_degree_centrality(g, data)
@@ -18,15 +25,20 @@ class NetworkAnalysis(BaseTransform):
         self.get_local_efficiency(g, data)
         self.get_nb_homophily(g, data)
         self.get_articulation_points(g, data)
+        if self.update_json:
+            with open(self.dataset_dir + "/min_max.json", "w") as f:
+                json.dump(self.min_max_dict, f)
         return data
 
     def save_metric_output(self, metric_name, data, output):
         data[metric_name] = output
         # save max and min for normalisation during training
-        if output.max() > data.get(metric_name + "_max", -float("inf")):
-            data[metric_name + "_max"] = output.max()
-        if output.min() < data.get(metric_name + "_min", float("inf")):
-            data[metric_name + "_min"] = output.min()
+        if output.max() > self.min_max_dict.get(metric_name + "_max", -float("inf")):
+            self.min_max_dict[metric_name + "_max"] = output.max().item()
+            self.update_json = True
+        if output.min() < self.min_max_dict.get(metric_name + "_min", float("inf")):
+            self.min_max_dict[metric_name + "_min"] = output.min().item()
+            self.update_json = True
 
     def get_coloring(self, g, data):
         # compute the coloring for a graph
@@ -83,6 +95,7 @@ class NetworkAnalysis(BaseTransform):
         self.save_metric_output("closeness_centrality", data, centrality_mask)
 
     def get_ev_centrality(self, g, data):
+        # need larger max_iter because of convergence issues
         centrality = nx.eigenvector_centrality(g, max_iter=5000)
         centrality_mask = torch.tensor(
             [centrality[i] for i in range(len(centrality.keys()))]
@@ -115,7 +128,7 @@ class NetworkAnalysis(BaseTransform):
         nb_homophily_normalised = nb_homophily / torch.tensor(
             [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
         )  # if statement: avoid div by 0 error in case of disconnected nodes
-        self.save_metric_output("nh_homophily", data, nb_homophily_normalised)
+        self.save_metric_output("nb_homophily", data, nb_homophily_normalised)
 
     def get_articulation_points(self, g, data):
         # mark all articulation points in the graph

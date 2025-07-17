@@ -1,3 +1,4 @@
+import json
 import torch
 import torch_geometric.graphgym.models.head  # noqa, register module
 import torch_geometric.graphgym.register as register
@@ -41,6 +42,10 @@ class CustomGNN(torch.nn.Module):
         # get the prediction head
         GNNHead = register.head_dict[cfg.gnn.head]
         self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
+
+        # get the min and max values for custom metrics
+        with open(dataset_dir + "/min_max.json", "r") as f:
+            self.min_max_dict = json.load(f)
 
     def build_conv_model(self, model_type):
         if model_type == "gatedgcnconv":
@@ -88,6 +93,7 @@ class CustomGNN(torch.nn.Module):
         )
         # adapt alphas using the normalised metric information of the nodes
         # clamp metric values to ensure that the normalised values are in [0,1]
+        print("hu?")
         if cfg.async_update.metric is not None:
             normalised_metric = (
                 (
