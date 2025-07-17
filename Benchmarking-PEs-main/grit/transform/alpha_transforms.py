@@ -77,7 +77,7 @@ class NetworkAnalysis(BaseTransform):
         data.closeness_centrality = centrality_mask
 
     def get_ev_centrality(self, g, data):
-        centrality = nx.eigenvector_centrality(g)
+        centrality = nx.eigenvector_centrality(g, max_iter=500)
         centrality_mask = torch.tensor(
             [centrality[i] for i in range(len(centrality.keys()))]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
@@ -96,12 +96,16 @@ class NetworkAnalysis(BaseTransform):
         data.local_efficiency = efficiency_mask
 
     def get_nb_homophily(self, g, data):
-        # taken from Geom-GCN: Geometric Graph Convolutional Networks
+        # taken from "LSGNN: Towards General Graph Neural Network in Node Classification by Local Similarity"
         nb_homophily = torch.zeros(data.x.shape[0])
         for edge in g.edges:
-            if torch.equal(data.x[edge[0]], data.x[edge[1]]):
-                nb_homophily[edge[0]] += 1
-                nb_homophily[edge[1]] += 1
+            # similarity metric: negative euclidean distance
+            sim = -torch.cdist(
+                data.x[edge[0]].float().unsqueeze(-1),
+                data.x[edge[1]].float().unsqueeze(-1),
+            ).squeeze()
+            nb_homophily[edge[0]] += sim
+            nb_homophily[edge[1]] += sim
         nb_homophily_normalised = nb_homophily / torch.tensor(
             [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
         )  # if statement: avoid div by 0 error in case of disconnected nodes
