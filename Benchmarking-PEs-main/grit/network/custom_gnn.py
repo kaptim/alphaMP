@@ -54,10 +54,9 @@ class CustomGNN(torch.nn.Module):
         GNNHead = register.head_dict[cfg.gnn.head]
         self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
 
-        print("let's do this")
         # get the min and max values for custom metrics
-        # with open(get_min_max_path(cfg) + "/min_max.json", "r") as f:
-        #     self.min_max_dict = json.load(f)
+        with open(get_min_max_path(cfg) + "/min_max.json", "r") as f:
+            self.min_max_dict = json.load(f)
 
     def build_conv_model(self, model_type):
         if model_type == "gatedgcnconv":
@@ -105,7 +104,6 @@ class CustomGNN(torch.nn.Module):
         )
         # adapt alphas using the normalised metric information of the nodes
         # clamp metric values to ensure that the normalised values are in [0,1]
-        print("hu?")
         if cfg.async_update.metric is not None:
             normalised_metric = (
                 (
@@ -114,9 +112,12 @@ class CustomGNN(torch.nn.Module):
                         min=self.min_max_dict.get(cfg.async_update.metric + "_min"),
                         max=self.min_max_dict.get(cfg.async_update.metric + "_max"),
                     )
-                    - cfg.async_update.metric_min
+                    - self.min_max_dict.get(cfg.async_update.metric + "_min")
                 )
-                / (cfg.async_update.metric_max - cfg.async_update.metric_min)
+                / (
+                    self.min_max_dict.get(cfg.async_update.metric + "_max")
+                    - self.min_max_dict.get(cfg.async_update.metric + "_min")
+                )
             ).unsqueeze(-1) * cfg.async_update.metric_range
             alphas += (
                 normalised_metric if cfg.async_update.metric_pos else -normalised_metric

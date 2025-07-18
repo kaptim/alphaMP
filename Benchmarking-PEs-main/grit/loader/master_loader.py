@@ -537,7 +537,6 @@ def save_metrics_min_max(dataset, dataset_dir, name):
                 "degree_centrality",
                 "degree_centrality_rel",
                 "closeness_centrality",
-                "eigenvector_centrality",
                 "local_efficiency",
                 "nb_homophily_euc",
                 "nb_homophily_cos",
@@ -1702,7 +1701,6 @@ def preformat_ZINC(dataset_dir, name):
             for split in ["train", "val", "test"]
         ]
     )
-    print("ok, let's try again")
     save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
