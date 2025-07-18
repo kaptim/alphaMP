@@ -1,4 +1,5 @@
 import json
+import os.path as osp
 import torch
 import torch_geometric.graphgym.models.head  # noqa, register module
 import torch_geometric.graphgym.register as register
@@ -9,6 +10,16 @@ from grit.layer.gatedgcn_layer import ResGatedGCNConvLayer
 from grit.layer.gatedgcn_layer import GatedGCNLayer
 from grit.layer.gine_conv_layer import GINEConvLayer
 from grit.layer.gin_layer import GINConvLayer
+
+
+def get_min_max_path(cfg):
+    dataset_dir = cfg.dataset.dir
+    if cfg.dataset.format.startswith("PyG-"):
+        pyg_dataset_id = cfg.dataset.format.split("-", 1)[1]
+        dataset_dir = osp.join(dataset_dir, pyg_dataset_id)
+        if pyg_dataset_id == "GNNBenchmarkDataset":
+            dataset_dir = dataset_dir.replace("/GNNBenchmarkDataset", "")
+    return dataset_dir + "/" + cfg.dataset.name
 
 
 @register_network("custom_gnn")
@@ -43,9 +54,10 @@ class CustomGNN(torch.nn.Module):
         GNNHead = register.head_dict[cfg.gnn.head]
         self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
 
+        print("let's do this")
         # get the min and max values for custom metrics
-        with open(dataset_dir + "/min_max.json", "r") as f:
-            self.min_max_dict = json.load(f)
+        # with open(get_min_max_path(cfg) + "/min_max.json", "r") as f:
+        #     self.min_max_dict = json.load(f)
 
     def build_conv_model(self, model_type):
         if model_type == "gatedgcnconv":
@@ -99,8 +111,8 @@ class CustomGNN(torch.nn.Module):
                 (
                     torch.clamp(
                         batch.get(cfg.async_update.metric),
-                        min=cfg.async_update.metric_min,
-                        max=cfg.async_update.metric_max,
+                        min=self.min_max_dict.get(cfg.async_update.metric + "_min"),
+                        max=self.min_max_dict.get(cfg.async_update.metric + "_max"),
                     )
                     - cfg.async_update.metric_min
                 )

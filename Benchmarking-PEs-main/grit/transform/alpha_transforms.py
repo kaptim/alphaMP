@@ -15,6 +15,7 @@ class NetworkAnalysis(BaseTransform):
         self.dataset_dir = dataset_dir
 
     def __call__(self, data: Data) -> Data:
+        print("try2")
         g = to_networkx(data, to_undirected=True)
         self.update_json = False
         self.get_coloring(g, data)
@@ -120,9 +121,13 @@ class NetworkAnalysis(BaseTransform):
         for edge in g.edges:
             # similarity metric: negative euclidean distance
             sim = -torch.cdist(
-                data.x[edge[0]].float().unsqueeze(-1),
-                data.x[edge[1]].float().unsqueeze(-1),
+                data.x[edge[0]].float().unsqueeze(0),
+                data.x[edge[1]].float().unsqueeze(0),
             ).squeeze()
+            # sim = torch.nn.functional.cosine_similarity(
+            #     data.x[edge[0]].float().unsqueeze(0),
+            #     data.x[edge[1]].float().unsqueeze(0),
+            # ).squeeze()
             nb_homophily[edge[0]] += sim
             nb_homophily[edge[1]] += sim
         nb_homophily_normalised = nb_homophily / torch.tensor(
