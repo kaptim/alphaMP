@@ -519,6 +519,11 @@ class SkipCircles(SymmetrySet):
         return graphs
 
 
+def save_metrics_min_max():
+    # save the min and max of each metric in a csv
+    pass
+
+
 def log_loaded_dataset(dataset, format, name):
     logging.info(f"[*] Loaded dataset '{name}' from '{format}':")
     logging.info(f"  {dataset.data}")
@@ -1265,7 +1270,7 @@ def preformat_syntheic(dataset_dir, name):
                 root=dataset_dir,
                 split=split,
                 data_list=data_list,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name, split=split),
+                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             datasets.append(syn_dataset)
         dataset = join_dataset_splits(datasets)
@@ -1305,7 +1310,7 @@ def preformat_GNNBenchmarkDataset(dataset_dir, name):
                 root=dataset_dir,
                 name=name,
                 split=split,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name, split=split),
+                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             for split in ["train", "val", "test"]
         ]
@@ -1582,6 +1587,7 @@ def preformat_Peptides(dataset_dir, name):
         )
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ["train", "val", "test"]]
+    save_metrics_min_max(dataset)
     return dataset
 
 
@@ -1654,11 +1660,13 @@ def preformat_ZINC(dataset_dir, name):
                 root=dataset_dir,
                 subset=(name == "subset"),
                 split=split,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name, split=split),
+                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             for split in ["train", "val", "test"]
         ]
     )
+    save_metrics_min_max(dataset)
+    print("ok, let's try again")
     return dataset
 
 
@@ -1677,7 +1685,7 @@ def preformat_Counting(dataset_dir, name):
                 task=task,
                 dataset_type=dataset_type,
                 split=split,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name, split=split),
+                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             for split in ["train", "val", "test"]
         ]
@@ -1699,7 +1707,7 @@ def preformat_AQSOL(dataset_dir, name):
             AQSOL(
                 root=dataset_dir,
                 split=split,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name, split=split),
+                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             for split in ["train", "val", "test"]
         ]
@@ -1722,7 +1730,7 @@ def preformat_VOCSuperpixels(dataset_dir, name, slic_compactness):
                 name=name,
                 slic_compactness=slic_compactness,
                 split=split,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name, split=split),
+                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             for split in ["train", "val", "test"]
         ]
@@ -1745,7 +1753,7 @@ def preformat_COCOSuperpixels(dataset_dir, name, slic_compactness):
                 name=name,
                 slic_compactness=slic_compactness,
                 split=split,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name, split=split),
+                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             for split in ["train", "val", "test"]
         ]

@@ -9,18 +9,14 @@ from torch_geometric.transforms import BaseTransform
 class NetworkAnalysis(BaseTransform):
     # used as pre_transform
 
-    def __init__(self, dataset_dir, split=None):
+    def __init__(self, dataset_dir):
         super().__init__()
         self.min_max_dict = {}
         self.dataset_dir = dataset_dir
-        # for those datasets where the split is provided, compute here
-        # otherwise do not compute min and max during pre-transform
-        self.split = None
 
     def __call__(self, data: Data) -> Data:
-        print("try2")
         g = to_networkx(data, to_undirected=True)
-        self.update_json = False
+        self.update_json = False  # only update if a value was updated
         self.get_coloring(g, data)
         self.get_betweenness_centrality(g, data)
         self.get_degree_centrality(g, data)
@@ -29,7 +25,7 @@ class NetworkAnalysis(BaseTransform):
         self.get_local_efficiency(g, data)
         self.get_nb_homophily(g, data)
         self.get_articulation_points(g, data)
-        if self.update_json and self.split == "train":
+        if self.update_json:
             with open(self.dataset_dir + "/min_max.json", "w") as f:
                 json.dump(self.min_max_dict, f)
         return data
