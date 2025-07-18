@@ -525,7 +525,10 @@ def save_metrics_min_max(dataset, dataset_dir, name):
     min_max_dir = "/".join([dataset_dir, name, "min_max.json"])
     if not osp.exists(min_max_dir):
         # takes some time, only run once
+        # idx loop faster than indexing using list of indices
         train_idx = dataset.split_idxs[0]
+        if type(train_idx) == torch.Tensor:
+            train_idx = train_idx.tolist()
         min_max_dict = {}
         for idx in train_idx:
             data = dataset.get(idx)
@@ -536,7 +539,8 @@ def save_metrics_min_max(dataset, dataset_dir, name):
                 "closeness_centrality",
                 "eigenvector_centrality",
                 "local_efficiency",
-                "nb_homophily",
+                "nb_homophily_euc",
+                "nb_homophily_cos",
             ]:
                 metric_output = data[metric]
                 if metric_output.max() > min_max_dict.get(

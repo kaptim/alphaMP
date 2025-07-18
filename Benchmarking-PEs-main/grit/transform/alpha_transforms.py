@@ -20,7 +20,6 @@ class NetworkAnalysis(BaseTransform):
         self.get_betweenness_centrality(g, data)
         self.get_degree_centrality(g, data)
         self.get_closeness_centrality(g, data)
-        self.get_ev_centrality(g, data)
         self.get_local_efficiency(g, data)
         self.get_nb_homophily(g, data)
         self.get_articulation_points(g, data)
@@ -65,7 +64,10 @@ class NetworkAnalysis(BaseTransform):
         }  # divide by maximum possible degree n-1 to get degree centrality
         centrality_mask_rel = torch.tensor(
             [
-                centrality[i] / neighbor_degree_centrality[i]
+                centrality[i]
+                / (
+                    1 if centrality[i] == 0 else neighbor_degree_centrality[i]
+                )  # avoid div by 0 for disconnected nodes
                 for i in range(len(centrality.keys()))
             ]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
@@ -81,8 +83,8 @@ class NetworkAnalysis(BaseTransform):
         data["closeness_centrality"] = centrality_mask
 
     def get_ev_centrality(self, g, data):
-        # need larger max_iter because of convergence issues
-        centrality = nx.eigenvector_centrality(g, max_iter=5000)
+        # left out because not useful on disconnected graphs (which exist)
+        centrality = nx.eigenvector_centrality(g, max_iter=10000)
         centrality_mask = torch.tensor(
             [centrality[i] for i in range(len(centrality.keys()))]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
@@ -102,23 +104,30 @@ class NetworkAnalysis(BaseTransform):
 
     def get_nb_homophily(self, g, data):
         # taken from "LSGNN: Towards General Graph Neural Network in Node Classification by Local Similarity"
-        nb_homophily = torch.zeros(data.x.shape[0])
+        nb_homophily_euc = torch.zeros(data.x.shape[0])
+        nb_homophily_cos = torch.zeros(data.x.shape[0])
         for edge in g.edges:
             # similarity metric: negative euclidean distance
-            sim = -torch.cdist(
+            euc = -torch.cdist(
                 data.x[edge[0]].float().unsqueeze(0),
                 data.x[edge[1]].float().unsqueeze(0),
             ).squeeze()
-            # sim = torch.nn.functional.cosine_similarity(
-            #     data.x[edge[0]].float().unsqueeze(0),
-            #     data.x[edge[1]].float().unsqueeze(0),
-            # ).squeeze()
-            nb_homophily[edge[0]] += sim
-            nb_homophily[edge[1]] += sim
-        nb_homophily_normalised = nb_homophily / torch.tensor(
+            cos = torch.nn.functional.cosine_similarity(
+                data.x[edge[0]].float().unsqueeze(0),
+                data.x[edge[1]].float().unsqueeze(0),
+            ).squeeze()
+            nb_homophily_euc[edge[0]] += euc
+            nb_homophily_euc[edge[1]] += euc
+            nb_homophily_cos[edge[0]] += cos
+            nb_homophily_cos[edge[1]] += cos
+        nb_homophily_normalised_euc = nb_homophily_euc / torch.tensor(
             [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
         )  # if statement: avoid div by 0 error in case of disconnected nodes
-        data["nb_homophily"] = nb_homophily_normalised
+        nb_homophily_normalised_cos = nb_homophily_cos / torch.tensor(
+            [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
+        )
+        data["nb_homophily_euc"] = nb_homophily_normalised_euc
+        data["nb_homophily_cos"] = nb_homophily_normalised_cos
 
     def get_articulation_points(self, g, data):
         # mark all articulation points in the graph
