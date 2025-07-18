@@ -16,7 +16,6 @@ class NetworkAnalysis(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
         g = to_networkx(data, to_undirected=True)
-        self.update_json = False  # only update if a value was updated
         self.get_coloring(g, data)
         self.get_betweenness_centrality(g, data)
         self.get_degree_centrality(g, data)
@@ -25,20 +24,7 @@ class NetworkAnalysis(BaseTransform):
         self.get_local_efficiency(g, data)
         self.get_nb_homophily(g, data)
         self.get_articulation_points(g, data)
-        if self.update_json:
-            with open(self.dataset_dir + "/min_max.json", "w") as f:
-                json.dump(self.min_max_dict, f)
         return data
-
-    def save_metric_output(self, metric_name, data, output):
-        data[metric_name] = output
-        # save max and min for normalisation during training
-        if output.max() > self.min_max_dict.get(metric_name + "_max", -float("inf")):
-            self.min_max_dict[metric_name + "_max"] = output.max().item()
-            self.update_json = True
-        if output.min() < self.min_max_dict.get(metric_name + "_min", float("inf")):
-            self.min_max_dict[metric_name + "_min"] = output.min().item()
-            self.update_json = True
 
     def get_coloring(self, g, data):
         # compute the coloring for a graph
@@ -62,7 +48,7 @@ class NetworkAnalysis(BaseTransform):
             [centrality[i] for i in range(len(centrality.keys()))]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
         )
-        self.save_metric_output("centrality", data, centrality_mask)
+        data["centrality"] = centrality_mask
 
     def get_degree_centrality(self, g, data):
         centrality = nx.degree_centrality(g)
@@ -70,7 +56,7 @@ class NetworkAnalysis(BaseTransform):
             [centrality[i] for i in range(len(centrality.keys()))]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
         )
-        self.save_metric_output("degree_centrality", data, centrality_mask)
+        data["degree_centrality"] = centrality_mask
 
         # compute relative degree centrality
         neighbor_degree = nx.average_neighbor_degree(g)
@@ -84,7 +70,7 @@ class NetworkAnalysis(BaseTransform):
             ]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
         )
-        self.save_metric_output("degree_centrality_rel", data, centrality_mask_rel)
+        data["degree_centrality_rel"] = centrality_mask_rel
 
     def get_closeness_centrality(self, g, data):
         centrality = nx.closeness_centrality(g)
@@ -92,7 +78,7 @@ class NetworkAnalysis(BaseTransform):
             [centrality[i] for i in range(len(centrality.keys()))]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
         )
-        self.save_metric_output("closeness_centrality", data, centrality_mask)
+        data["closeness_centrality"] = centrality_mask
 
     def get_ev_centrality(self, g, data):
         # need larger max_iter because of convergence issues
@@ -101,7 +87,7 @@ class NetworkAnalysis(BaseTransform):
             [centrality[i] for i in range(len(centrality.keys()))]
             + [0 for i in range(len(centrality.keys()), data.x.shape[0])]
         )
-        self.save_metric_output("eigenvector_centrality", data, centrality_mask)
+        data["eigenvector_centrality"] = centrality_mask
 
     def get_local_efficiency(self, g, data):
         # local efficiency: average global efficiency
@@ -112,7 +98,7 @@ class NetworkAnalysis(BaseTransform):
             [local_efficiency[i] for i in range(len(local_efficiency.keys()))]
             + [0 for i in range(len(local_efficiency.keys()), data.x.shape[0])]
         )
-        self.save_metric_output("local_efficiency", data, efficiency_mask)
+        data["local_efficiency"] = efficiency_mask
 
     def get_nb_homophily(self, g, data):
         # taken from "LSGNN: Towards General Graph Neural Network in Node Classification by Local Similarity"
@@ -132,7 +118,7 @@ class NetworkAnalysis(BaseTransform):
         nb_homophily_normalised = nb_homophily / torch.tensor(
             [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
         )  # if statement: avoid div by 0 error in case of disconnected nodes
-        self.save_metric_output("nb_homophily", data, nb_homophily_normalised)
+        data["nb_homophily"] = nb_homophily_normalised
 
     def get_articulation_points(self, g, data):
         # mark all articulation points in the graph

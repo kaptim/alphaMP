@@ -1,4 +1,5 @@
 import logging
+import json
 import os.path as osp
 import time
 import warnings
@@ -519,9 +520,35 @@ class SkipCircles(SymmetrySet):
         return graphs
 
 
-def save_metrics_min_max():
-    # save the min and max of each metric in a csv
-    pass
+def save_metrics_min_max(dataset, dataset_dir, name):
+    # save the min and max of each metric (training data) in a csv
+    min_max_dir = "/".join([dataset_dir, name, "min_max.json"])
+    if not osp.exists(min_max_dir):
+        # takes some time, only run once
+        train_idx = dataset.split_idxs[0]
+        min_max_dict = {}
+        for idx in train_idx:
+            data = dataset.get(idx)
+            for metric in [
+                "centrality",
+                "degree_centrality",
+                "degree_centrality_rel",
+                "closeness_centrality",
+                "eigenvector_centrality",
+                "local_efficiency",
+                "nb_homophily",
+            ]:
+                metric_output = data[metric]
+                if metric_output.max() > min_max_dict.get(
+                    metric + "_max", -float("inf")
+                ):
+                    min_max_dict[metric + "_max"] = metric_output.max().item()
+                if metric_output.min() < min_max_dict.get(
+                    metric + "_min", float("inf")
+                ):
+                    min_max_dict[metric + "_min"] = metric_output.min().item()
+        with open(min_max_dir, "w") as f:
+            json.dump(min_max_dict, f)
 
 
 def log_loaded_dataset(dataset, format, name):
@@ -720,6 +747,7 @@ def load_dataset_master(format, name, dataset_dir):
                 name,
                 pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
+            save_metrics_min_max(dataset, dataset_dir, name)
 
         elif pyg_dataset_id == "TUDataset":
             dataset = preformat_TUDataset(dataset_dir, name)
@@ -1274,6 +1302,7 @@ def preformat_syntheic(dataset_dir, name):
             )
             datasets.append(syn_dataset)
         dataset = join_dataset_splits(datasets)
+        save_metrics_min_max(dataset, dataset_dir, name)
         return dataset
     else:
         syn_dataset = SyntheticNodeDataset(
@@ -1281,6 +1310,7 @@ def preformat_syntheic(dataset_dir, name):
             data_list=dataset.makedata(),
             pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
         )
+        save_metrics_min_max(syn_dataset, dataset_dir, name)
         return syn_dataset
 
 
@@ -1316,7 +1346,7 @@ def preformat_GNNBenchmarkDataset(dataset_dir, name):
         ]
     )
     pre_transform_in_memory(dataset, T.Compose(tf_list))
-
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1368,6 +1398,7 @@ def preformat_OGB_Graph(dataset_dir, name):
     )
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ["train", "valid", "test"]]
+    save_metrics_min_max(dataset, dataset_dir, name)
 
     if name == "ogbg-ppa":
         # ogbg-ppa doesn't have any node features, therefore add zeros but do
@@ -1509,6 +1540,7 @@ def preformat_OGB_PCQM4Mv2(dataset_dir, name):
     else:
         raise ValueError(f"Unexpected OGB PCQM4Mv2 subset choice: {name}")
     dataset.split_idxs = split_idxs
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1548,6 +1580,7 @@ def preformat_PCQM4Mv2Contact(dataset_dir, name):
     dataset.split_idxs = [s_dict[s] for s in ["train", "val", "test"]]
     if cfg.dataset.resample_negative:
         dataset.transform = structured_neg_sampling_transform
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1587,7 +1620,7 @@ def preformat_Peptides(dataset_dir, name):
         )
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ["train", "val", "test"]]
-    save_metrics_min_max(dataset)
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1665,8 +1698,8 @@ def preformat_ZINC(dataset_dir, name):
             for split in ["train", "val", "test"]
         ]
     )
-    save_metrics_min_max(dataset)
     print("ok, let's try again")
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1690,6 +1723,7 @@ def preformat_Counting(dataset_dir, name):
             for split in ["train", "val", "test"]
         ]
     )
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1712,6 +1746,7 @@ def preformat_AQSOL(dataset_dir, name):
             for split in ["train", "val", "test"]
         ]
     )
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1735,6 +1770,7 @@ def preformat_VOCSuperpixels(dataset_dir, name, slic_compactness):
             for split in ["train", "val", "test"]
         ]
     )
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
@@ -1758,6 +1794,7 @@ def preformat_COCOSuperpixels(dataset_dir, name, slic_compactness):
             for split in ["train", "val", "test"]
         ]
     )
+    save_metrics_min_max(dataset, dataset_dir, name)
     return dataset
 
 
