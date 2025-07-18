@@ -19,8 +19,8 @@ def get_train_file(train_folder):
 
     if len(filtered_files) != 1:
         raise ValueError(
-            "Expected exactly one file after filtering, but found {}".format(
-                len(filtered_files)
+            "Expected exactly one file after filtering, but found {} in {}".format(
+                len(filtered_files), train_folder
             )
         )
 
