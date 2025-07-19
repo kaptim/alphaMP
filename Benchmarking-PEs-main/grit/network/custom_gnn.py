@@ -105,19 +105,27 @@ class CustomGNN(torch.nn.Module):
         # adapt alphas using the normalised metric information of the nodes
         # clamp metric values to ensure that the normalised values are in [0,1]
         if cfg.async_update.metric is not None:
+            metric_min = (
+                self.min_max_dict.get(cfg.async_update.metric + "_min")
+                if cfg.async_update.metric != "articulation_points"
+                # min / max not saved for articulation points since it is binary 0 / 1
+                else 0
+            )
+            metric_max = (
+                self.min_max_dict.get(cfg.async_update.metric + "_max")
+                if cfg.async_update.metric != "articulation_points"
+                else 1
+            )
             normalised_metric = (
                 (
                     torch.clamp(
                         batch.get(cfg.async_update.metric),
-                        min=self.min_max_dict.get(cfg.async_update.metric + "_min"),
-                        max=self.min_max_dict.get(cfg.async_update.metric + "_max"),
+                        min=metric_min,
+                        max=metric_max,
                     )
-                    - self.min_max_dict.get(cfg.async_update.metric + "_min")
+                    - metric_min
                 )
-                / (
-                    self.min_max_dict.get(cfg.async_update.metric + "_max")
-                    - self.min_max_dict.get(cfg.async_update.metric + "_min")
-                )
+                / (metric_max - metric_min)
             ).unsqueeze(-1) * cfg.async_update.metric_range
             alphas += (
                 normalised_metric if cfg.async_update.metric_pos else -normalised_metric
