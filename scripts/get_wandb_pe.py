@@ -89,8 +89,6 @@ def get_aligned_config_list(config: list):
     # since some data may have been missing in earlier runs
     alpha_col = "async_update.alpha"
     metric_col = "async_update.metric"
-    metric_max_col = "async_update.metric_max"
-    metric_min_col = "async_update.metric_min"
     metric_pos_col = "async_update.metric_pos"
     metric_range_col = "async_update.metric_range"
     coloring_col = "async_update.use_coloring"
@@ -102,10 +100,6 @@ def get_aligned_config_list(config: list):
             c[alpha_col] = c["model.alpha"]
         if metric_col not in c.keys():
             c[metric_col] = "centrality"
-        if metric_max_col not in c.keys():
-            c[metric_max_col] = c["dataset.centrality_max"]
-        if metric_min_col not in c.keys():
-            c[metric_min_col] = c["dataset.centrality_min"]
         if metric_pos_col not in c.keys():
             c[metric_pos_col] = True
         if metric_range_col not in c.keys():

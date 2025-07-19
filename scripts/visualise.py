@@ -297,6 +297,7 @@ def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
     plt.xticks(size=(6 if mode == "top5" else 4))
     plt.xlabel("Experiments")
     plt.ylabel(metric)
+    plt.ylim(max(0, min(mean_list) - 0.05), min(1, max(mean_list) + 0.05))
     plt.savefig(
         PLOT_FOLDER_PE
         + "/"
