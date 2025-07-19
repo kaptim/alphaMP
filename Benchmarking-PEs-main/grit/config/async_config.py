@@ -9,8 +9,6 @@ def set_cfg_posenc(cfg):
     cfg.async_update = CN()
 
     cfg.async_update.metric = None  # centrality, degree
-    cfg.async_update.metric_min = 0
-    cfg.async_update.metric_max = 1.0
     cfg.async_update.metric_range = 0.0  # 0: no metric information considered
     cfg.async_update.metric_pos = True  # correlation of alpha and this metric (True: higher value of the metric => higher alpha value)
 

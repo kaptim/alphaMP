@@ -39,8 +39,6 @@ train:
   ckpt_period: 100
 async_update:
   metric: centrality
-  metric_min: 0
-  metric_max: 0.28 # needs to be set to correctly reflect the dataset and the metric
   metric_range: 0.0
   metric_pos: True
   alpha: 1.0
