@@ -194,10 +194,11 @@ def get_str_key_pe(key):
         return str(key)
 
 
-def plot_score_boxplot_pe(raw_data: pd.DataFrame, dataset, model, pe, best=True):
-    # mode: either only plot the best results (with > 1 run) per (a)synchronous setting
-    # (specific lr, number of layers, maximum number of epochs, dropout)
-    # or plot all results
+def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
+    # mode: "best" (best results with > 1 run per (a)synchronous setting:
+    # specific lr, number of layers, maximum number of epochs, dropout)
+    # "top5": only plot the 5 best results
+    # else: all results
     df_plot = raw_data[
         (raw_data["dataset"] == dataset)
         & (raw_data["model"] == model)
@@ -233,39 +234,69 @@ def plot_score_boxplot_pe(raw_data: pd.DataFrame, dataset, model, pe, best=True)
     df_plot_arr_list = {
         k: v for k, v in df_plot_arr_list.items() if df_plot_arr_list[k].shape[0] > 1
     }
+    # get the metric
+    metrics = df_plot["metric_best"].unique().tolist()
+    if len(metrics) > 1:
+        raise ValueError("Different metrics used")
+    metric = metrics[0]
 
-    if best:
+    if mode in ["best", "top5"]:
         # only keep the best (a)synchronous settings
         unique_settings = set(
             ["_".join(s.split("_")[:-4]) for s in df_plot_arr_list.keys()]
         )
         if len(unique_settings) != len(df_plot_arr_list.keys()):
             # pick the best setting and only keep those values
-            df_plot_arr_list = {}
+            df_plot_arr_list_filtered = {}
             for s in unique_settings:
                 best_cfg = ""
-                best_cfg_performance = 0
-                for c in df_plot_arr_list.keys():
-                    if (
-                        c[: len(s)] == s
-                        and np.mean(df_plot_arr_list[c]) > best_cfg_performance
-                    ):
-                        best_cfg = c
-                        best_cfg_performance = df_plot_arr_list[c]
-                df_plot_arr_list[best_cfg] = best_cfg_performance
+                if metric in ["mae"]:
+                    # lower better
+                    best_cfg_performance = 1
+                    for c in df_plot_arr_list.keys():
+                        if c[: len(s)] == s and np.mean(df_plot_arr_list[c]) < np.mean(
+                            best_cfg_performance
+                        ):
+                            best_cfg = c
+                            best_cfg_performance = df_plot_arr_list[c]
+                else:
+                    best_cfg_performance = 0
+                    for c in df_plot_arr_list.keys():
+                        if c[: len(s)] == s and np.mean(df_plot_arr_list[c]) > np.mean(
+                            best_cfg_performance
+                        ):
+                            best_cfg = c
+                            best_cfg_performance = df_plot_arr_list[c]
+                df_plot_arr_list_filtered[best_cfg] = best_cfg_performance
+            df_plot_arr_list = df_plot_arr_list_filtered
 
-    plt.boxplot(
-        list(df_plot_arr_list.values()),
-        positions=[i for i in range(len(df_plot_arr_list))],
-        tick_labels=list(df_plot_arr_list.keys()),
+        if mode == "top5":
+            mean_values = [np.mean(x) for x in df_plot_arr_list.values()]
+            if metric in ["mae"]:
+                top5_values = sorted(mean_values)[:5]
+            else:
+                top5_values = sorted(mean_values, reverse=True)[:5]
+            df_plot_arr_list_filtered = {}
+            for k, v in df_plot_arr_list.items():
+                if np.mean(v) in top5_values:
+                    df_plot_arr_list_filtered[k] = v
+            df_plot_arr_list = df_plot_arr_list_filtered
+
+    mean_list = [np.mean(x) for x in df_plot_arr_list.values()]
+    std_list = [np.std(x) for x in df_plot_arr_list.values()]
+
+    plt.bar(
+        df_plot_arr_list.keys(),
+        mean_list,
+        yerr=std_list,
+        capsize=5,
+        ecolor="black",
+        color="forestgreen",
     )
     plt.title(dataset + ", " + model + ", " + pe)
-    plt.xticks(size=8)
+    plt.xticks(size=(6 if mode == "top5" else 4))
     plt.xlabel("Experiments")
-    metrics = df_plot["metric_best"].unique().tolist()
-    if len(metrics) > 1:
-        raise ValueError("Different metrics used")
-    plt.ylabel(metrics[0])
+    plt.ylabel(metric)
     plt.savefig(
         PLOT_FOLDER_PE
         + "/"
@@ -274,7 +305,7 @@ def plot_score_boxplot_pe(raw_data: pd.DataFrame, dataset, model, pe, best=True)
         + model
         + "_"
         + pe
-        + ("best" if best else ""),
+        + (mode if mode in ["best", "top5"] else ""),
         bbox_inches="tight",
         dpi=300,
     )
@@ -366,7 +397,7 @@ def plot_results_pe():
                 ]["PE"].unique()
             )
             for pe in pes:
-                plot_score_boxplot_pe(raw_data, dataset, model, pe)
+                plot_score_pe(raw_data, dataset, model, pe)
 
 
 def plot_centrality():
