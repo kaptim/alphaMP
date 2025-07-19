@@ -522,8 +522,11 @@ class SkipCircles(SymmetrySet):
 
 def save_metrics_min_max(dataset, dataset_dir, name):
     # save the min and max of each metric (training data) in a csv
-    min_max_dir = "/".join([dataset_dir, name, "min_max.json"])
-    if not osp.exists(min_max_dir):
+    min_max_dir = "/".join([dataset_dir, name])
+    min_max_f = "/".join([min_max_dir, "min_max.json"])
+    if not osp.exists(min_max_f):
+        if not osp.exists(min_max_dir):
+            os.mkdir(min_max_dir)
         # takes some time, only run once
         # idx loop faster than indexing using list of indices
         train_idx = dataset.split_idxs[0]
@@ -550,7 +553,7 @@ def save_metrics_min_max(dataset, dataset_dir, name):
                     metric + "_min", float("inf")
                 ):
                     min_max_dict[metric + "_min"] = metric_output.min().item()
-        with open(min_max_dir, "w") as f:
+        with open(min_max_f, "w") as f:
             json.dump(min_max_dict, f)
 
 
