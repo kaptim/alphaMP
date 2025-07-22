@@ -194,11 +194,7 @@ def get_str_key_pe(key):
         return str(key)
 
 
-def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
-    # mode: "best" (best results with > 1 run per (a)synchronous setting:
-    # specific lr, number of layers, maximum number of epochs, dropout)
-    # "top5": only plot the 5 best results
-    # else: all results
+def get_plot_data(raw_data: pd.DataFrame, dataset, model, pe, mode):
     df_plot = raw_data[
         (raw_data["dataset"] == dataset)
         & (raw_data["model"] == model)
@@ -282,6 +278,15 @@ def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
                     df_plot_arr_list_filtered[k] = v
             df_plot_arr_list = df_plot_arr_list_filtered
 
+    return df_plot_arr_list
+
+
+def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
+    # mode: "best" (best results with > 1 run per (a)synchronous setting:
+    # specific lr, number of layers, maximum number of epochs, dropout)
+    # "top5": only plot the 5 best results
+    # else: all results
+    df_plot_arr_list = get_plot_data(raw_data, dataset, model, pe, mode)
     mean_list = [np.mean(x) for x in df_plot_arr_list.values()]
     std_list = [np.std(x) for x in df_plot_arr_list.values()]
 
@@ -313,8 +318,7 @@ def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
     plt.close()
 
 
-def plot_results_pe():
-    # keep columns needed for plotting
+def preprocess_pe():
     relevant_cols = [
         "name",
         "metric_best",
@@ -384,6 +388,12 @@ def plot_results_pe():
             raw_data["model.type"] != "custom_gnn", gt_col
         ]
         raw_data = raw_data.drop([gnn_col, gt_col], axis=1)
+
+    return raw_data
+
+
+def plot_results_pe():
+    raw_data = preprocess_pe()
 
     # plot for each dataset, model, PE
     datasets = list(raw_data["dataset"].unique())
