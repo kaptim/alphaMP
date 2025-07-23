@@ -181,6 +181,80 @@ def plot_results():
                     )
 
 
+def preprocess_pe():
+    relevant_cols = [
+        "name",
+        "metric_best",
+        "async_update.alpha",
+        "async_update.use_coloring",
+        "async_update.alpha_edge_flag",
+        "async_update.alpha_node_flag",
+        "async_update.metric",
+        "async_update.metric_range",
+        "async_update.metric_pos",
+        "optim.base_lr",
+        "optim.max_epoch",
+        "model.type",
+        "gnn.layer_type",
+        "gnn.dropout",
+        "gnn.layers_mp",
+        "gt.layer_type",
+        "gt.dropout",
+        "gt.layers",
+        "train.batch_size",
+        "best/epoch",
+        "best/test_loss",
+        "best/train_loss",
+        "best/test_mae",
+        "best/test_accuracy-SBM",
+        "best/test_accuracy",
+        "best/test_ap",
+        "best/test_f1",
+        "best/test_mrr_filt_self",
+    ]
+    raw_data = pd.read_csv(get_data_csv_path(True)).loc[:, relevant_cols]
+    raw_data["name"] = raw_data["name"].str.upper()
+    raw_data["dataset"] = raw_data["name"].str.split("-").str[:-2].str.join("-")
+    raw_data["model"] = raw_data["name"].str.split("-").str[-2]
+    raw_data["PE"] = raw_data["name"].str.split("-").str[-1]
+    raw_data = raw_data.drop("name", axis=1)
+
+    # convert metric columns for easier plotting
+    raw_data["best/metric"] = (
+        raw_data["best/test_mae"].fillna(0)
+        + raw_data["best/test_accuracy-SBM"].fillna(0)
+        + raw_data["best/test_accuracy"].fillna(0)
+        + raw_data["best/test_ap"].fillna(0)
+        + raw_data["best/test_f1"].fillna(0)
+    )
+    raw_data = raw_data.drop(
+        [
+            "best/test_mae",
+            "best/test_accuracy-SBM",
+            "best/test_accuracy",
+            "best/test_ap",
+            "best/test_f1",
+        ],
+        axis=1,
+    )
+
+    # only keep gnn or gt columns depending on the model used
+    raw_data = raw_data.rename(columns={"gnn.layers_mp": "gnn.layers"})
+    for col in ["dropout", "layer_type", "layers"]:
+        raw_data[col] = np.nan
+        gnn_col = ".".join(["gnn", col])
+        gt_col = ".".join(["gt", col])
+        raw_data.loc[raw_data["model.type"] == "custom_gnn", col] = raw_data.loc[
+            raw_data["model.type"] == "custom_gnn", gnn_col
+        ]
+        raw_data.loc[raw_data["model.type"] != "custom_gnn", col] = raw_data.loc[
+            raw_data["model.type"] != "custom_gnn", gt_col
+        ]
+        raw_data = raw_data.drop([gnn_col, gt_col], axis=1)
+
+    return raw_data
+
+
 def get_str_key_pe(key):
     if str(key) == "True":
         return "T"
@@ -194,7 +268,7 @@ def get_str_key_pe(key):
         return str(key)
 
 
-def get_plot_data(raw_data: pd.DataFrame, dataset, model, pe, mode):
+def get_plot_data_pe(raw_data: pd.DataFrame, dataset, model, pe, mode):
     df_plot = raw_data[
         (raw_data["dataset"] == dataset)
         & (raw_data["model"] == model)
@@ -278,7 +352,7 @@ def get_plot_data(raw_data: pd.DataFrame, dataset, model, pe, mode):
                     df_plot_arr_list_filtered[k] = v
             df_plot_arr_list = df_plot_arr_list_filtered
 
-    return df_plot_arr_list
+    return df_plot_arr_list, metric
 
 
 def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
@@ -286,7 +360,7 @@ def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
     # specific lr, number of layers, maximum number of epochs, dropout)
     # "top5": only plot the 5 best results
     # else: all results
-    df_plot_arr_list = get_plot_data(raw_data, dataset, model, pe, mode)
+    df_plot_arr_list, metric = get_plot_data_pe(raw_data, dataset, model, pe, mode)
     mean_list = [np.mean(x) for x in df_plot_arr_list.values()]
     std_list = [np.std(x) for x in df_plot_arr_list.values()]
 
@@ -316,80 +390,6 @@ def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
         dpi=300,
     )
     plt.close()
-
-
-def preprocess_pe():
-    relevant_cols = [
-        "name",
-        "metric_best",
-        "async_update.alpha",
-        "async_update.use_coloring",
-        "async_update.alpha_edge_flag",
-        "async_update.alpha_node_flag",
-        "async_update.metric",
-        "async_update.metric_range",
-        "async_update.metric_pos",
-        "optim.base_lr",
-        "optim.max_epoch",
-        "model.type",
-        "gnn.layer_type",
-        "gnn.dropout",
-        "gnn.layers_mp",
-        "gt.layer_type",
-        "gt.dropout",
-        "gt.layers",
-        "train.batch_size",
-        "best/epoch",
-        "best/test_loss",
-        "best/train_loss",
-        "best/test_mae",
-        "best/test_accuracy-SBM",
-        "best/test_accuracy",
-        "best/test_ap",
-        "best/test_f1",
-        "best/test_mrr_filt_self",
-    ]
-    raw_data = pd.read_csv(get_data_csv_path(True)).loc[:, relevant_cols]
-    raw_data["name"] = raw_data["name"].str.upper()
-    raw_data["dataset"] = raw_data["name"].str.split("-").str[:-2].str.join("-")
-    raw_data["model"] = raw_data["name"].str.split("-").str[-2]
-    raw_data["PE"] = raw_data["name"].str.split("-").str[-1]
-    raw_data = raw_data.drop("name", axis=1)
-
-    # convert metric columns for easier plotting
-    raw_data["best/metric"] = (
-        raw_data["best/test_mae"].fillna(0)
-        + raw_data["best/test_accuracy-SBM"].fillna(0)
-        + raw_data["best/test_accuracy"].fillna(0)
-        + raw_data["best/test_ap"].fillna(0)
-        + raw_data["best/test_f1"].fillna(0)
-    )
-    raw_data = raw_data.drop(
-        [
-            "best/test_mae",
-            "best/test_accuracy-SBM",
-            "best/test_accuracy",
-            "best/test_ap",
-            "best/test_f1",
-        ],
-        axis=1,
-    )
-
-    # only keep gnn or gt columns depending on the model used
-    raw_data = raw_data.rename(columns={"gnn.layers_mp": "gnn.layers"})
-    for col in ["dropout", "layer_type", "layers"]:
-        raw_data[col] = np.nan
-        gnn_col = ".".join(["gnn", col])
-        gt_col = ".".join(["gt", col])
-        raw_data.loc[raw_data["model.type"] == "custom_gnn", col] = raw_data.loc[
-            raw_data["model.type"] == "custom_gnn", gnn_col
-        ]
-        raw_data.loc[raw_data["model.type"] != "custom_gnn", col] = raw_data.loc[
-            raw_data["model.type"] != "custom_gnn", gt_col
-        ]
-        raw_data = raw_data.drop([gnn_col, gt_col], axis=1)
-
-    return raw_data
 
 
 def plot_results_pe():
