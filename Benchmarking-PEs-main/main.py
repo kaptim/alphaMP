@@ -228,6 +228,7 @@ if __name__ == "__main__":
         logging.info(model)
         logging.info(cfg)
         cfg.params = get_num_parameters(model)
+        5 / 0
         logging.info("Num parameters: %s", cfg.params)
         # Start training
         if cfg.train.mode == "standard":
