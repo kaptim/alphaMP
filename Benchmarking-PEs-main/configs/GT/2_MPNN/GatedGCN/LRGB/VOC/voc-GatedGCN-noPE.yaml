@@ -52,7 +52,7 @@ gnn:
   layers_pre_mp: 0
   layers_mp: 14
   layers_post_mp: 2
-  dim_inner: 95
+  dim_inner: 80
   layer_type: gatedgcnconv
   act: gelu
   residual: True
