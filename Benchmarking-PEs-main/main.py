@@ -1,5 +1,6 @@
 import datetime
 import os
+import json
 import torch
 import logging
 
@@ -133,6 +134,31 @@ def run_loop_settings():
     return run_ids, seeds, split_indices
 
 
+def get_num_parameters(model):
+    file_path = os.getcwd() + "\\num_parameters.csv"
+    num_params = params_count(model)
+    name = "_".join(
+        [
+            cfg.dataset.format,
+            cfg.dataset.name,
+            str(cfg.gnn.layers_mp),
+            str(cfg.gnn.dim_inner),
+        ]
+    )
+    if not os.path.exists(file_path):
+        num_params_dict = {name: num_params}
+        with open(file_path, "w") as f:
+            json.dump(num_params_dict, f)
+    else:
+        with open(file_path, "r") as f:
+            num_params_dict = json.load(f)
+        if name not in num_params_dict:
+            num_params_dict[name] = num_params
+            with open(file_path, "w") as f:
+                json.dump(num_params_dict, f)
+    return num_params
+
+
 if __name__ == "__main__":
     # Load cmd line args
     x = 1
@@ -201,7 +227,7 @@ if __name__ == "__main__":
         # Print model info
         logging.info(model)
         logging.info(cfg)
-        cfg.params = params_count(model)
+        cfg.params = get_num_parameters(model)
         logging.info("Num parameters: %s", cfg.params)
         # Start training
         if cfg.train.mode == "standard":
