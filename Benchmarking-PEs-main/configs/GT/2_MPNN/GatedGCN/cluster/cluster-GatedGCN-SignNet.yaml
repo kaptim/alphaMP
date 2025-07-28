@@ -1,19 +1,20 @@
 out_dir: results
 metric_best: accuracy
-tensorboard_each_run: True  # Log to Tensorboard each run
+tensorboard_each_run: False  # Log to Tensorboard each run
 accelerator: "cuda:0"
-repeat: 4
+# repeat: 4
 num_workers: 4
 mlflow:
   use: False
-  project: Exp
+  project: async_pe
   name: CLUSTER-GatedGCN-SignNet
 wandb:
   use: True
-  project: "PEGT"
+  project: async_pe
   name: "CLUSTER-GatedGCN-SignNet"
-  entity: jiaqing
+  entity: tkrappel-eth-zurich
 dataset:
+  dir: ../datasets
   pe_transform_on_the_fly: False # compute PE on the fly to save memory when launching many experiments in parallel
   format: PyG-GNNBenchmarkDataset
   name: CLUSTER
@@ -43,9 +44,17 @@ posenc_SignNet:
   raw_norm_type: none
 train:
   mode: custom
-  batch_size: 16
+  batch_size: 32
   eval_period: 1
   ckpt_period: 100
+async_update:
+  metric: centrality
+  metric_range: 0.0
+  metric_pos: True
+  alpha: 1.0
+  alpha_node_flag: a
+  alpha_edge_flag: a
+  use_coloring: False
 model:
   type: custom_gnn
   loss_fun: weighted_cross_entropy
@@ -53,7 +62,7 @@ model:
 gnn:
   head: inductive_node
   layers_pre_mp: 0
-  layers_mp: 4
+  layers_mp: 16
   layers_post_mp: 3
   dim_inner: 48  # `gt.dim_hidden` must match `gnn.dim_inner`
   batchnorm: True
