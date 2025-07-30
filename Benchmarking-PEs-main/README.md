@@ -70,6 +70,9 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 
 # configs/GT/2_MPNN/GatedGCN/cifar10/cifar10-GatedGCN-RRWP.yaml
 # configs/GT/2_MPNN/GatedGCN/mnist/mnist-GatedGCN-RRWP.yaml
+# configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-RWSE.yaml
+# configs/GT/2_MPNN/GatedGCN/pattern/pattern-GatedGCN-RWSE.yaml
+# configs/GT/2_MPNN/GatedGCN/cluster/cluster-GatedGCN-SignNet.yaml
 
 ```
 
