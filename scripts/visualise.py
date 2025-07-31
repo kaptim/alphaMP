@@ -197,6 +197,7 @@ def preprocess_pe():
         "model.type",
         "gnn.layer_type",
         "gnn.dropout",
+        "gnn.dim_inner",
         "gnn.layers_mp",
         "gt.layer_type",
         "gt.dropout",
@@ -255,7 +256,7 @@ def preprocess_pe():
     return raw_data
 
 
-def get_str_key_pe(key):
+def get_str_key_pe_plot(key):
     if str(key) == "True":
         return "T"
     elif str(key) == "False":
@@ -281,7 +282,7 @@ def get_plot_data_pe(raw_data: pd.DataFrame, dataset, model, pe, mode):
         return caption[:18] + "\n" + caption[18:36] + "\n" + caption[36:]
 
     df_plot_arr_list = {
-        insert_line_breaks("_".join([get_str_key_pe(k) for k in key])): group[
+        insert_line_breaks("_".join([get_str_key_pe_plot(k) for k in key])): group[
             "best/metric"
         ].to_numpy()
         for key, group in df_plot.groupby(
@@ -390,6 +391,118 @@ def plot_score_pe(raw_data: pd.DataFrame, dataset, model, pe, mode="top5"):
         dpi=300,
     )
     plt.close()
+
+
+def get_str_key_pe(key):
+    if str(key) == "True":
+        return "T"
+    elif str(key) == "False":
+        return "F"
+    elif len(str(key).split("_")) > 1:
+        return "".join([s[0] for s in str(key).split("_")])
+    else:
+        return str(key)
+
+
+def get_all_results():
+    raw_data = preprocess_pe()
+
+    raw_data_arr_list = {
+        "_".join([get_str_key_pe(k) for k in key]): group["best/metric"].to_numpy()
+        for key, group in raw_data.groupby(
+            by=[
+                "model",
+                "dataset",
+                "PE",
+                "async_update.alpha",
+                "async_update.alpha_node_flag",
+                "async_update.alpha_edge_flag",
+                "async_update.metric",
+                "async_update.metric_range",
+                "async_update.metric_pos",
+                "async_update.use_coloring",
+                "optim.base_lr",
+                "optim.max_epoch",
+                "layers",
+                "gnn.dim_inner",
+                "dropout",
+            ]
+        )
+    }
+
+    # eliminate runs with less than three repetitions
+    raw_data_arr_list = {
+        k: v for k, v in raw_data_arr_list.items() if raw_data_arr_list[k].shape[0] > 2
+    }
+
+    unique_settings = set(
+        ["_".join(s.split("_")[:-4]) for s in raw_data_arr_list.keys()]
+    )
+    parameters_in_budget = {
+        "PASCAL-VOC": "14.0_80",
+        "PEPTIDES-FUNC": "10.0_95",
+        "PEPTIDES-STRUCT": "8.0_100",
+        "PCQM4M-CONTACT": "8.0_105",
+        "COCO": "6.0_120",
+    }
+
+    # if it is among the keys, keep two best lists:
+    # best and "best in budget" (may be the same)
+    if len(unique_settings) != len(raw_data_arr_list.keys()):
+        # pick the best setting and only keep those values
+        raw_data_arr_list_filtered = {}
+        for s in unique_settings:
+            best_cfg = ""
+            budgeted = False
+            name = s.split("_")[1]
+            if name in ["ZINC", "PEPTIDES-STRUCT"]:
+                # lower better
+                best_cfg_performance = 100
+                best_budgeted_performance = 100
+                for c in raw_data_arr_list.keys():
+                    layer_dim = "_".join(c.split("_")[-3:-1])
+                    if c[: len(s)] == s and np.mean(raw_data_arr_list[c]) < np.mean(
+                        best_cfg_performance
+                    ):
+                        best_cfg = c
+                        best_cfg_performance = raw_data_arr_list[c]
+                    if (
+                        c[: len(s)] == s
+                        and np.mean(raw_data_arr_list[c])
+                        < np.mean(best_budgeted_performance)
+                        and layer_dim == parameters_in_budget.get(name, None)
+                    ):
+                        best_budgeted_cfg = c + "_b"
+                        best_budgeted_performance = raw_data_arr_list[c]
+                        budgeted = True
+            else:
+                best_cfg_performance = -100
+                best_budgeted_performance = -100
+                for c in raw_data_arr_list.keys():
+                    if c[: len(s)] == s and np.mean(raw_data_arr_list[c]) > np.mean(
+                        best_cfg_performance
+                    ):
+                        best_cfg = c
+                        best_cfg_performance = raw_data_arr_list[c]
+                    if (
+                        c[: len(s)] == s
+                        and np.mean(raw_data_arr_list[c])
+                        > np.mean(best_budgeted_performance)
+                        and layer_dim == parameters_in_budget.get(name, None)
+                    ):
+                        best_budgeted_cfg = c + "_b"
+                        best_budgeted_performance = raw_data_arr_list[c]
+                        budgeted = True
+            raw_data_arr_list_filtered[best_cfg] = best_cfg_performance
+            if budgeted:
+                raw_data_arr_list_filtered[best_budgeted_cfg] = (
+                    best_budgeted_performance
+                )
+            budgeted = False
+        raw_data_arr_list = raw_data_arr_list_filtered
+
+    for k, v in sorted(raw_data_arr_list.items()):
+        print(k + ", mean: " + str(np.mean(v)) + ", std: " + str(np.std(v)))
 
 
 def plot_results_pe():
