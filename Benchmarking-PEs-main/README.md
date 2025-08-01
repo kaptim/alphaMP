@@ -59,11 +59,13 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 
 # configs/GT/2_MPNN/GatedGCN/cifar10/cifar10-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/cluster/cluster-GatedGCN-noPE.yaml
+
 # configs/GT/2_MPNN/GatedGCN/LRGB/COCO/coco-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/LRGB/pcqm_contact/pcqm-contact-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/LRGB/peptides_func/peptides-func-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/LRGB/peptides_struct/peptides-struct-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/LRGB/VOC/voc-GatedGCN-noPE.yaml
+
 # configs/GT/2_MPNN/GatedGCN/mnist/mnist-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/pattern/pattern-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml

@@ -404,6 +404,39 @@ def get_str_key_pe(key):
         return str(key)
 
 
+def plot_depth_advantage():
+    raw_data = preprocess_pe()
+
+    zinc = raw_data[raw_data["dataset"] == "ZINC"]
+    zinc_arr_list = {
+        "_".join([get_str_key_pe(k) for k in key]): group["best/metric"].to_numpy()
+        for key, group in zinc.groupby(
+            by=[
+                "model",
+                "dataset",
+                "PE",
+                "async_update.alpha",
+                "async_update.alpha_node_flag",
+                "async_update.alpha_edge_flag",
+                "async_update.metric",
+                "async_update.metric_range",
+                "async_update.metric_pos",
+                "async_update.use_coloring",
+                "optim.base_lr",
+                "optim.max_epoch",
+                "layers",
+                "gnn.dim_inner",
+                "dropout",
+            ]
+        )
+    }
+
+    # eliminate runs with less than three repetitions
+    zinc_arr_list = {
+        k: v for k, v in zinc_arr_list.items() if zinc_arr_list[k].shape[0] > 2
+    }
+
+
 def get_all_results():
     raw_data = preprocess_pe()
 
