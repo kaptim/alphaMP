@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
+import networkx as nx
 from pathlib import Path
 import numpy as np
+import math
 import pandas as pd
 import os
 
@@ -227,6 +229,7 @@ def preprocess_pe():
         + raw_data["best/test_accuracy"].fillna(0)
         + raw_data["best/test_ap"].fillna(0)
         + raw_data["best/test_f1"].fillna(0)
+        + raw_data["best/test_mrr_filt_self"].fillna(0)
     )
     raw_data = raw_data.drop(
         [
@@ -235,6 +238,7 @@ def preprocess_pe():
             "best/test_accuracy",
             "best/test_ap",
             "best/test_f1",
+            "best/test_mrr_filt_self",
         ],
         axis=1,
     )
@@ -512,6 +516,7 @@ def get_all_results():
                 best_cfg_performance = -100
                 best_budgeted_performance = -100
                 for c in raw_data_arr_list.keys():
+                    layer_dim = "_".join(c.split("_")[-3:-1])
                     if c[: len(s)] == s and np.mean(raw_data_arr_list[c]) > np.mean(
                         best_cfg_performance
                     ):
@@ -535,7 +540,7 @@ def get_all_results():
         raw_data_arr_list = raw_data_arr_list_filtered
 
     for k, v in sorted(raw_data_arr_list.items()):
-        print(k + ", mean: " + str(np.mean(v)) + ", std: " + str(np.std(v)))
+        print(k + ", mean: " + str(np.mean(v * 100)) + ", std: " + str(np.std(v * 100)))
 
 
 def plot_results_pe():
@@ -578,6 +583,88 @@ def plot_centrality():
             bbox_inches="tight",
         )
         plt.close()
+
+
+def local_efficiency(g):
+    pass
+
+
+def degree_centrality(g):
+    d_centrality = nx.degree_centrality(g)
+    neighbor_degree = nx.average_neighbor_degree(g)
+    neighbor_degree_centrality = {
+        k: v / (g.number_of_nodes() - 1) for k, v in neighbor_degree.items()
+    }  # divide by maximum possible degree n-1 to get degree centrality
+
+    d_centrality_rel = [
+        d_centrality[i]
+        / (
+            1 if d_centrality[i] == 0 else neighbor_degree_centrality[i]
+        )  # avoid div by 0 for disconnected nodes
+        for i in range(len(d_centrality.keys()))
+    ]
+
+    return [d_centrality, d_centrality_rel]
+
+
+def nb_homophily(g):
+    # taken from "LSGNN: Towards General Graph Neural Network in Node Classification by Local Similarity"
+    nb_homophily_euc = [0]
+    nb_homophily_cos = torch.zeros(data.x.shape[0])
+    for edge in g.edges:
+        # similarity metric: negative euclidean distance
+        euc = -torch.cdist(
+            data.x[edge[0]].float().unsqueeze(0),
+            data.x[edge[1]].float().unsqueeze(0),
+        ).squeeze()
+        cos = torch.nn.functional.cosine_similarity(
+            data.x[edge[0]].float().unsqueeze(0),
+            data.x[edge[1]].float().unsqueeze(0),
+        ).squeeze()
+        nb_homophily_euc[edge[0]] += euc
+        nb_homophily_euc[edge[1]] += euc
+        nb_homophily_cos[edge[0]] += cos
+        nb_homophily_cos[edge[1]] += cos
+    nb_homophily_normalised_euc = nb_homophily_euc / torch.tensor(
+        [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
+    )  # if statement: avoid div by 0 error in case of disconnected nodes
+    nb_homophily_normalised_cos = nb_homophily_cos / torch.tensor(
+        [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
+    )
+
+
+def get_metrics(g):
+
+    metric_results = []
+
+    for metric in [
+        nx.betweenness_centrality,
+        nx.closeness_centrality,
+        nx.articulation_points,
+        local_efficiency,
+        degree_centrality,
+        nb_homophily,
+    ]:
+        result = metric(g)
+        if type(result) == dict:
+            metric_results.append(metric(g))
+        elif type(result) == list:
+            metric_results += result
+
+    return metric_results
+
+
+def plot_er_graph():
+    # draw a random Erdos-Renyi graph to plot the different metrics
+    n = 80
+    p = 1.2 * math.log(n) / n
+
+    g = nx.erdos_renyi_graph(n, p)
+
+    nx.draw(g, node_size=50)
+
+    for v in g:
+        print(v)
 
 
 def main():
