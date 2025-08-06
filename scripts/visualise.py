@@ -585,8 +585,18 @@ def plot_centrality():
         plt.close()
 
 
+def articulation_points(g):
+    articulation_points = nx.articulation_points(g)
+    articulation_points_mask = {k: 0 for k in range(g.number_of_nodes())}
+    for pt in list(articulation_points):
+        articulation_points_mask[pt] = 1
+    return articulation_points_mask
+
+
 def local_efficiency(g):
-    pass
+    # local efficiency: efficiency of the neighbours
+    local_efficiency = {v: nx.global_efficiency(g.subgraph(g[v])) for v in g}
+    return local_efficiency
 
 
 def degree_centrality(g):
@@ -596,51 +606,63 @@ def degree_centrality(g):
         k: v / (g.number_of_nodes() - 1) for k, v in neighbor_degree.items()
     }  # divide by maximum possible degree n-1 to get degree centrality
 
-    d_centrality_rel = [
-        d_centrality[i]
+    d_centrality_rel = {
+        k: d_centrality[k]
         / (
-            1 if d_centrality[i] == 0 else neighbor_degree_centrality[i]
+            1 if d_centrality[k] == 0 else neighbor_degree_centrality[k]
         )  # avoid div by 0 for disconnected nodes
-        for i in range(len(d_centrality.keys()))
-    ]
+        for k in d_centrality.keys()
+    }
 
     return [d_centrality, d_centrality_rel]
 
 
 def nb_homophily(g):
     # taken from "LSGNN: Towards General Graph Neural Network in Node Classification by Local Similarity"
-    nb_homophily_euc = [0]
-    nb_homophily_cos = torch.zeros(data.x.shape[0])
+    nb_homophily_euc = {k: 0 for k in g.nodes}
+    nb_homophily_cos = {k: 0 for k in g.nodes}
     for edge in g.edges:
         # similarity metric: negative euclidean distance
-        euc = -torch.cdist(
-            data.x[edge[0]].float().unsqueeze(0),
-            data.x[edge[1]].float().unsqueeze(0),
-        ).squeeze()
-        cos = torch.nn.functional.cosine_similarity(
-            data.x[edge[0]].float().unsqueeze(0),
-            data.x[edge[1]].float().unsqueeze(0),
-        ).squeeze()
+        euc = -np.linalg.norm(g.nodes[edge[0]]["pos"] - g.nodes[edge[1]]["pos"])
+        cos = np.dot(g.nodes[edge[0]]["pos"], g.nodes[edge[1]]["pos"]) / (
+            np.linalg.norm(g.nodes[edge[0]]["pos"])
+            * np.linalg.norm(g.nodes[edge[1]]["pos"])
+        )
         nb_homophily_euc[edge[0]] += euc
         nb_homophily_euc[edge[1]] += euc
         nb_homophily_cos[edge[0]] += cos
         nb_homophily_cos[edge[1]] += cos
-    nb_homophily_normalised_euc = nb_homophily_euc / torch.tensor(
-        [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
-    )  # if statement: avoid div by 0 error in case of disconnected nodes
-    nb_homophily_normalised_cos = nb_homophily_cos / torch.tensor(
-        [len(nbrs) if len(nbrs) != 0 else 1 for nbrs in g.adj.values()]
-    )
+    nb_homophily_normalised_euc = {
+        k: nb_homophily_euc[k] / len(g.adj[k]) if len(g.adj[k]) != 0 else 1
+        for k in nb_homophily_euc.keys()
+    }
+    # if statement: avoid div by 0 error in case of disconnected nodes
+    nb_homophily_normalised_cos = {
+        k: nb_homophily_cos[k] / len(g.adj[k]) if len(g.adj[k]) != 0 else 1
+        for k in nb_homophily_cos.keys()
+    }
+
+    return [nb_homophily_normalised_euc, nb_homophily_normalised_cos]
 
 
 def get_metrics(g):
 
     metric_results = []
+    names = [
+        "betweenness_centrality",
+        "closeness_centrality",
+        "articulation_points",
+        "local_efficiency",
+        "degree_centrality",
+        "degree_centrality_rel",
+        "nb_homophily_euc",
+        "nb_homophily_cos",
+    ]
 
     for metric in [
         nx.betweenness_centrality,
         nx.closeness_centrality,
-        nx.articulation_points,
+        articulation_points,
         local_efficiency,
         degree_centrality,
         nb_homophily,
@@ -651,20 +673,39 @@ def get_metrics(g):
         elif type(result) == list:
             metric_results += result
 
-    return metric_results
+    return metric_results, names
 
 
 def plot_er_graph():
     # draw a random Erdos-Renyi graph to plot the different metrics
-    n = 80
-    p = 1.2 * math.log(n) / n
+    n = 120
+    p = 1 * math.log(n) / n
+    seed = 0
 
-    g = nx.erdos_renyi_graph(n, p)
+    g = nx.erdos_renyi_graph(n, p, seed=seed)
+    # add random layout (positions of the nodes) for homophily
+    pos = nx.random_layout(g, seed=seed)
+    nx.set_node_attributes(g, pos, "pos")
 
-    nx.draw(g, node_size=50)
+    metrics, names = get_metrics(g)
 
-    for v in g:
-        print(v)
+    for i in range(len(metrics)):
+        nx.draw(
+            g,
+            node_size=200,
+            pos=pos,
+            node_color=metrics[i].values(),
+            edgecolors="black",
+            edge_color="black",
+            width=0.2,
+            cmap="Greens",
+        )
+        plt.savefig(
+            PLOT_FOLDER_PE + "/random_graph_" + names[i],
+            bbox_inches="tight",
+            dpi=300,
+        )
+        plt.close()
 
 
 def main():
