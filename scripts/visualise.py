@@ -408,13 +408,16 @@ def get_str_key_pe(key):
         return str(key)
 
 
-def plot_depth_advantage():
+def plot_depth_advantage(dataset, cfgs):
+    # cfgs should be given in the order that they should be plotted
     raw_data = preprocess_pe()
 
-    zinc = raw_data[raw_data["dataset"] == "ZINC"]
-    zinc_arr_list = {
+    dataset_data = raw_data[
+        (raw_data["dataset"] == dataset) & (raw_data["PE"] == "NOPE")
+    ]
+    dataset_arr_list = {
         "_".join([get_str_key_pe(k) for k in key]): group["best/metric"].to_numpy()
-        for key, group in zinc.groupby(
+        for key, group in dataset_data.groupby(
             by=[
                 "model",
                 "dataset",
@@ -436,9 +439,92 @@ def plot_depth_advantage():
     }
 
     # eliminate runs with less than three repetitions
-    zinc_arr_list = {
-        k: v for k, v in zinc_arr_list.items() if zinc_arr_list[k].shape[0] > 2
+    dataset_arr_list = {
+        k: v for k, v in dataset_arr_list.items() if dataset_arr_list[k].shape[0] > 2
     }
+
+    if not dataset == "ZINC":
+        filtered_list = {
+            k: v * 100
+            for k, v in dataset_arr_list.items()
+            if "_".join(k.split("_")[-9:]) in cfgs
+        }
+    else:
+        filtered_list = {
+            k: v
+            for k, v in dataset_arr_list.items()
+            if "_".join(k.split("_")[-9:]) in cfgs
+        }
+
+    async_mean = []
+    async_std = []
+    sync_mean = []
+    sync_std = []
+
+    for cfg in cfgs:
+        async_cfg_data = filtered_list["GATEDGCN_" + dataset + "_NOPE_0.95_a_a_" + cfg]
+        sync_cfg_data = filtered_list["GATEDGCN_" + dataset + "_NOPE_1.0_a_a_" + cfg]
+        async_mean.append(np.mean(async_cfg_data))
+        async_std.append(np.std(async_cfg_data))
+        sync_mean.append(np.mean(sync_cfg_data))
+        sync_std.append(np.std(sync_cfg_data))
+
+    xs = np.arange(len(cfgs))
+    plt.bar(
+        xs - 0.2,
+        async_mean,
+        yerr=async_std,
+        label="Asynchronous Run",
+        width=0.4,
+        capsize=5,
+        error_kw={"elinewidth": 3, "capthick": 3},
+        ecolor="black",
+        color="forestgreen",
+    )
+    plt.bar(
+        xs + 0.2,
+        sync_mean,
+        yerr=sync_std,
+        label="Synchronous Run",
+        width=0.4,
+        capsize=5,
+        error_kw={"elinewidth": 3, "capthick": 3},
+        ecolor="black",
+        color="maroon",
+    )
+    plt.ylabel(dataset_data["metric_best"].iloc[0].upper(), fontsize=20)
+    ticks = [
+        cfg.split("_")[6][:-2] + " layers,\n" + cfg.split("_")[5] + " epochs"
+        for cfg in cfgs
+    ]
+    plt.xticks(xs, ticks, size=18)
+    plt.yticks(size=18)
+    plt.ylim(0, 1.2 * max(async_mean))
+    plt.legend(fontsize=18)
+    plt.savefig(
+        PLOT_FOLDER_PE + "/depth_" + dataset,
+        bbox_inches="tight",
+        dpi=300,
+    )
+    plt.close()
+
+
+def plot_depth_advantage_zinc():
+    cfgs = [
+        "centrality_0.0_T_F_0.001_500_4.0_64_0.0",
+        "centrality_0.0_T_F_0.001_1700_6.0_64_0.0",
+        "centrality_0.0_T_F_0.001_2500_8.0_64_0.0",
+    ]
+    plot_depth_advantage("ZINC", cfgs)
+
+
+def plot_depth_advantage_voc():
+    cfgs = [
+        "centrality_0.0_T_F_0.001_200_10.0_95_0.2",
+        "centrality_0.0_T_F_0.001_200_14.0_80_0.2",
+        "centrality_0.0_T_F_0.001_300_14.0_95_0.2",
+    ]
+    plot_depth_advantage("PASCAL-VOC", cfgs)
 
 
 def get_all_results():
