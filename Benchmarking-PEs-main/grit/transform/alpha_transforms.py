@@ -1,4 +1,6 @@
 import json
+import os
+import time
 import torch
 import networkx as nx
 from torch_geometric.utils import to_networkx
@@ -11,19 +13,47 @@ class NetworkAnalysis(BaseTransform):
 
     def __init__(self, dataset_dir):
         super().__init__()
-        self.min_max_dict = {}
         self.dataset_dir = dataset_dir
 
     def __call__(self, data: Data) -> Data:
         g = to_networkx(data, to_undirected=True)
         self.get_coloring(g, data)
+        start = time.time()
         self.get_betweenness_centrality(g, data)
+        bc = time.time()
         self.get_degree_centrality(g, data)
+        dc = time.time()
         self.get_closeness_centrality(g, data)
+        cc = time.time()
         self.get_local_efficiency(g, data)
+        le = time.time()
         self.get_nb_homophily(g, data)
+        nh = time.time()
         self.get_articulation_points(g, data)
+        ap = time.time()
+        runtime_dict = {
+            "centrality": bc - start,
+            "degree_centrality": dc - bc,
+            "closeness_centrality": cc - dc,
+            "local_efficiency": le - cc,
+            "nb_homophily": nh - le,
+            "articulation_points": ap - nh,
+        }
+        self.save_runtime(runtime_dict)
         return data
+
+    def save_runtime(self, runtime_dict):
+        runtime_f = "/".join([self.dataset_dir, "runtime.json"])
+        if not os.path.exists(self.dataset_dir):
+            os.mkdir(self.dataset_dir)
+        if os.path.exists(runtime_f):
+            with open(runtime_f, "r") as f:
+                previous = json.load(f)
+            runtime_dict = {
+                k: previous[k] + runtime_dict[k] for k in runtime_dict.keys()
+            }
+        with open(runtime_f, "w") as f:
+            json.dump(runtime_dict, f)
 
     def get_coloring(self, g, data):
         # compute the coloring for a graph
