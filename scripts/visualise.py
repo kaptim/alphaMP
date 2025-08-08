@@ -492,15 +492,20 @@ def plot_depth_advantage(dataset, cfgs):
         ecolor="black",
         color="maroon",
     )
-    plt.ylabel(dataset_data["metric_best"].iloc[0].upper(), fontsize=20)
+    plt.ylabel(dataset_data["metric_best"].iloc[0].upper(), fontsize=14)
     ticks = [
-        cfg.split("_")[6][:-2] + " layers,\n" + cfg.split("_")[5] + " epochs"
+        cfg.split("_")[6][:-2]
+        + " layers,\n"
+        + cfg.split("_")[5]
+        + " epochs,\n"
+        + cfg.split("_")[-2]
+        + " inner dim."
         for cfg in cfgs
     ]
-    plt.xticks(xs, ticks, size=18)
-    plt.yticks(size=18)
-    plt.ylim(0, 1.2 * max(async_mean))
-    plt.legend(fontsize=18)
+    plt.xticks(xs, ticks, size=12)
+    plt.yticks(size=12)
+    plt.ylim(max(0, min(async_mean) - 2), 1.1 * max(async_mean))
+    plt.legend(fontsize=12)
     plt.savefig(
         PLOT_FOLDER_PE + "/depth_" + dataset,
         bbox_inches="tight",
