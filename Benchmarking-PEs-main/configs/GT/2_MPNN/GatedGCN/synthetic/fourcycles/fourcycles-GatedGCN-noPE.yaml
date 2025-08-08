@@ -42,7 +42,6 @@ train:
   eval_period: 1
   ckpt_period: 100
 async_update:
-  metric: centrality
   metric_range: 0.0
   metric_pos: True
   alpha: 1.0

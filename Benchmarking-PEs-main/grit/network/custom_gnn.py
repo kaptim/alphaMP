@@ -200,9 +200,11 @@ class CustomGNN(torch.nn.Module):
                 # layer() calls forward (after registering hooks), modifies batch in place
                 # i.e., you should read this as "keep some values of the original batch,
                 # update batch (by passing it through the layer) and keep some (mask) of the new values"
-                batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
-                    batch
-                ).edge_attr
+                if not cfg.dataset.format == "Synthetic":
+                    # no edge attributes for synthetic datasets
+                    batch.edge_attr = (
+                        1 - edge_mask
+                    ) * batch.edge_attr + edge_mask * layer(batch).edge_attr
                 batch.x = (
                     1 - node_combined_mask
                 ) * batch_old_x + node_combined_mask * batch.x
@@ -221,7 +223,9 @@ class CustomGNN(torch.nn.Module):
             # layer() calls forward (after registering hooks), modifies batch in place
             # i.e., you should read this as "keep some values of the original batch,
             # update batch (by passing it through the layer) and keep some (mask) of the new values"
-            batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
-                batch
-            ).edge_attr
+            if not cfg.dataset.format == "Synthetic":
+                # no edge attributes for synthetic datasets
+                batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
+                    batch
+                ).edge_attr
             batch.x = (1 - node_mask) * batch_old_x + node_mask * batch.x

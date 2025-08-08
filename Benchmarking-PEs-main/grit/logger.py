@@ -82,7 +82,6 @@ class CustomLogger(Logger):
                 pred_score.to(torch.device(cfg.device)),
                 true.to(torch.device(cfg.device)),
                 # pos_label=1,
-                task="binary",
             )
             if self.test_scores:
                 # SK-learn version.
@@ -128,7 +127,6 @@ class CustomLogger(Logger):
                     true.to(torch.device(cfg.device)).squeeze(),
                     num_classes=pred_score.shape[1],
                     average="macro",
-                    task="multiclass",
                 )
             )
 
