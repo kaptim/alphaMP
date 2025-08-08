@@ -55,8 +55,10 @@ class CustomGNN(torch.nn.Module):
         self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
 
         # get the min and max values for custom metrics
-        with open(get_min_max_path(cfg) + "/min_max.json", "r") as f:
-            self.min_max_dict = json.load(f)
+        if not cfg.dataset.format == "Synthetic":
+            # no graph metrics for synthetic datasets
+            with open(get_min_max_path(cfg) + "/min_max.json", "r") as f:
+                self.min_max_dict = json.load(f)
 
     def build_conv_model(self, model_type):
         if model_type == "gatedgcnconv":

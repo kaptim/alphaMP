@@ -1304,19 +1304,15 @@ def preformat_syntheic(dataset_dir, name):
                 root=dataset_dir,
                 split=split,
                 data_list=data_list,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
             )
             datasets.append(syn_dataset)
         dataset = join_dataset_splits(datasets)
-        save_metrics_min_max(dataset, dataset_dir, name)
         return dataset
     else:
         syn_dataset = SyntheticNodeDataset(
             root=dataset_dir,
             data_list=dataset.makedata(),
-            pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
         )
-        save_metrics_min_max(syn_dataset, dataset_dir, name)
         return syn_dataset
 
 

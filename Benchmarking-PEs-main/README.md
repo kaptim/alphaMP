@@ -76,6 +76,12 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 # configs/GT/2_MPNN/GatedGCN/pattern/pattern-GatedGCN-RWSE.yaml
 # configs/GT/2_MPNN/GatedGCN/cluster/cluster-GatedGCN-SignNet.yaml
 
+# configs/GT/2_MPNN/GatedGCN/synthetic/fourcycles/fourcycles-GatedGCN-noPE.yaml
+# configs/GT/2_MPNN/GatedGCN/synthetic/limitsone/limitsone-GatedGCN-noPE.yaml
+# configs/GT/2_MPNN/GatedGCN/synthetic/limitstwo/limitstwo-GatedGCN-noPE.yaml
+# configs/GT/2_MPNN/GatedGCN/synthetic/skipcircles/skipcircles-GatedGCN-noPE.yaml
+# configs/GT/2_MPNN/GatedGCN/synthetic/triangles/triangles-GatedGCN-noPE.yaml
+
 ```
 
 ### Implemented Graph Transformers with Sparse Attention
