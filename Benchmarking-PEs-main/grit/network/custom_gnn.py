@@ -195,19 +195,23 @@ class CustomGNN(torch.nn.Module):
                 node_combined_mask = (
                     torch.logical_not(batch.coloring - color).int().unsqueeze(-1) * mask
                 )
-                edge_mask = self.get_edge_mask(batch, node_combined_mask)
-                batch_old_x = batch.x.detach().clone()
-                # layer() calls forward (after registering hooks), modifies batch in place
-                # i.e., you should read this as "keep some values of the original batch,
-                # update batch (by passing it through the layer) and keep some (mask) of the new values"
-                if not cfg.dataset.format == "Synthetic":
+                if cfg.dataset.format == "Synthetic":
                     # no edge attributes for synthetic datasets
+                    batch.x = (
+                        1 - node_combined_mask
+                    ) * batch.x + node_combined_mask * layer(batch).x
+                else:
+                    edge_mask = self.get_edge_mask(batch, node_combined_mask)
+                    batch_old_x = batch.x.detach().clone()
+                    # layer() calls forward (after registering hooks), modifies batch in place
+                    # i.e., you should read this as "keep some values of the original batch,
+                    # update batch (by passing it through the layer) and keep some (mask) of the new values"
                     batch.edge_attr = (
                         1 - edge_mask
                     ) * batch.edge_attr + edge_mask * layer(batch).edge_attr
-                batch.x = (
-                    1 - node_combined_mask
-                ) * batch_old_x + node_combined_mask * batch.x
+                    batch.x = (
+                        1 - node_combined_mask
+                    ) * batch_old_x + node_combined_mask * batch.x
 
     def masked_update(self, batch):
         # performs the update on this batch including all necessary masking
@@ -217,15 +221,17 @@ class CustomGNN(torch.nn.Module):
             return
         for layer in self.gnn_layers:
             node_mask = self.get_node_mask(batch)
-            # edge_mask: only update edges where at least one of the end nodes is updated
-            edge_mask = self.get_edge_mask(batch, node_mask)
-            batch_old_x = batch.x.detach().clone()
-            # layer() calls forward (after registering hooks), modifies batch in place
-            # i.e., you should read this as "keep some values of the original batch,
-            # update batch (by passing it through the layer) and keep some (mask) of the new values"
-            if not cfg.dataset.format == "Synthetic":
+            if cfg.dataset.format == "Synthetic":
                 # no edge attributes for synthetic datasets
+                batch.x = (1 - node_mask) * batch.x + node_mask * layer(batch).x
+            else:
+                # edge_mask: only update edges where at least one of the end nodes is updated
+                edge_mask = self.get_edge_mask(batch, node_mask)
+                batch_old_x = batch.x.detach().clone()
+                # layer() calls forward (after registering hooks), modifies batch in place
+                # i.e., you should read this as "keep some values of the original batch,
+                # update batch (by passing it through the layer) and keep some (mask) of the new values"
                 batch.edge_attr = (1 - edge_mask) * batch.edge_attr + edge_mask * layer(
                     batch
                 ).edge_attr
-            batch.x = (1 - node_mask) * batch_old_x + node_mask * batch.x
+                batch.x = (1 - node_mask) * batch_old_x + node_mask * batch.x
