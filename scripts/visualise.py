@@ -532,6 +532,109 @@ def plot_depth_advantage_voc():
     plot_depth_advantage("PASCAL-VOC", cfgs)
 
 
+def plot_metric_ablations():
+    raw_data = preprocess_pe()
+
+    datasets = ["CLUSTER", "PASCAL-VOC"]
+
+    dataset_data = raw_data[
+        (raw_data["dataset"].isin(datasets)) & (raw_data["PE"] == "NOPE")
+    ]
+    dataset_arr_list = {
+        "_".join([get_str_key_pe(k) for k in key]): group["best/metric"].to_numpy()
+        for key, group in dataset_data.groupby(
+            by=[
+                "model",
+                "dataset",
+                "PE",
+                "async_update.alpha",
+                "async_update.alpha_node_flag",
+                "async_update.alpha_edge_flag",
+                "async_update.metric",
+                "async_update.metric_range",
+                "async_update.metric_pos",
+                "async_update.use_coloring",
+                "optim.base_lr",
+                "optim.max_epoch",
+                "layers",
+                "gnn.dim_inner",
+                "dropout",
+            ]
+        )
+    }
+
+    # eliminate runs with less than three repetitions
+    dataset_arr_list = {
+        k: v for k, v in dataset_arr_list.items() if dataset_arr_list[k].shape[0] > 2
+    }
+
+    # ablations always based on metric_range = 0.2
+    filtered_list = {
+        "_".join(k.split("_")[1:9]): v * 100
+        for k, v in dataset_arr_list.items()
+        if k.split("_")[7] == "0.2"
+    }
+
+    # metrics to plot
+    metrics = ["ap", "centrality", "cc", "dc", "dcr", "le", "nhc", "nhe"]
+    strs = ["_NOPE_1.0_a_a_" + m + "_0.2_" for m in metrics]
+
+    for dataset in datasets:
+        means = {"T": [], "F": []}
+        stds = {"T": [], "F": []}
+        for i in range(len(strs)):
+            for flag in ["T", "F"]:
+                means[flag].append(np.mean(filtered_list[dataset + strs[i] + flag]))
+                stds[flag].append(np.std(filtered_list[dataset + strs[i] + flag]))
+
+        xs = np.arange(len(strs))
+        plt.bar(
+            xs - 0.2,
+            means["T"],
+            yerr=stds["T"],
+            label="Positive correlation",
+            width=0.4,
+            capsize=5,
+            error_kw={"elinewidth": 3, "capthick": 3},
+            ecolor="black",
+            color="forestgreen",
+        )
+        plt.bar(
+            xs + 0.2,
+            means["F"],
+            yerr=stds["F"],
+            label="Negative correlation",
+            width=0.4,
+            capsize=5,
+            error_kw={"elinewidth": 3, "capthick": 3},
+            ecolor="black",
+            color="maroon",
+        )
+        plt.ylabel(
+            dataset_data[dataset_data["dataset"] == dataset]["metric_best"]
+            .iloc[0]
+            .upper(),
+            fontsize=14,
+        )
+        ticks = [
+            ("bc" if s.split("_")[-3] == "centrality" else s.split("_")[-3])
+            for s in strs
+        ]
+        plt.xticks(xs, ticks, size=12)
+        plt.yticks(size=12)
+        plt.ylim(
+            max(0, min(min(means["T"]), min(means["F"])) - 5),
+            1.1 * max(max(means["T"]), max(means["F"])),
+        )
+        plt.legend(fontsize=12)
+        plt.savefig(
+            PLOT_FOLDER_PE + "/ablation_" + dataset,
+            bbox_inches="tight",
+            dpi=300,
+        )
+        plt.close()
+
+
 def get_all_results():
     raw_data = preprocess_pe()
 
