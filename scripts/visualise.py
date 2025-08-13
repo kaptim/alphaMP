@@ -900,11 +900,3 @@ def plot_er_graph():
             dpi=300,
         )
         plt.close()
-
-
-def main():
-    plot_results_pe()
-
-
-if __name__ == "__main__":
-    main()
