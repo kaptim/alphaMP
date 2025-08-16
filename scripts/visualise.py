@@ -11,6 +11,9 @@ PLOT_FOLDER_CENTRALITY = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "plots\\centrality"
 )
 PLOT_FOLDER_PE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plots\\pe")
+PLOT_FOLDER_FINAL = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "plots\\final"
+)
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "plot_data")
 
 
@@ -532,6 +535,15 @@ def plot_depth_advantage_voc():
     plot_depth_advantage("PASCAL-VOC", cfgs)
 
 
+def plot_depth_advantage_voc():
+    cfgs = [
+        "centrality_0.0_T_F_0.001_100_4.0_64_0.0",
+        "centrality_0.0_T_F_0.001_100_6.0_64_0.0",
+        "centrality_0.0_T_F_0.001_200_10.0_64_0.0",
+    ]
+    plot_depth_advantage("PATTERN", cfgs)
+
+
 def plot_metric_ablations():
     raw_data = preprocess_pe()
 
@@ -870,15 +882,14 @@ def get_metrics(g):
     return metric_results, names
 
 
-def plot_er_graph():
-    # draw a random Erdos-Renyi graph to plot the different metrics
-    n = 120
-    p = 1 * math.log(n) / n
-    seed = 0
+def plot_random_graph():
+    # draw a random graph to plot the different metrics
+    n = 30
+    seed = 42
 
-    g = nx.erdos_renyi_graph(n, p, seed=seed)
-    # add random layout (positions of the nodes) for homophily
-    pos = nx.random_layout(g, seed=seed)
+    g = nx.watts_strogatz_graph(n=n, k=4, p=0.1, seed=seed)
+
+    pos = nx.spring_layout(g, k=1, seed=seed)
     nx.set_node_attributes(g, pos, "pos")
 
     metrics, names = get_metrics(g)
@@ -895,7 +906,7 @@ def plot_er_graph():
             cmap="Greens",
         )
         plt.savefig(
-            PLOT_FOLDER_PE + "/random_graph_" + names[i],
+            PLOT_FOLDER_FINAL + "/random_graph_" + names[i] + ".pdf",
             bbox_inches="tight",
             dpi=300,
         )
