@@ -1,11 +1,12 @@
-import pandas as pd
 import wandb
 import matplotlib.pyplot as plt
-from datetime import datetime as dt
 import os
 
 PROJECT = "tkrappel-eth-zurich/async_pe"
 PLOT_FOLDER_PE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plots\\pe")
+PLOT_FOLDER_FINAL = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "plots\\final"
+)
 
 
 def get_wandb_run(run_id):
@@ -20,10 +21,10 @@ def plot_overfitting(dataset, best_sync, best_async):
     # need to ensure that epochs match
 
     name_dict = {
-        "Best Synchronous Run": best_sync,
-        "Best Asynchronous Run": best_async,
+        "Synchronous Run": best_sync,
+        "Asynchronous Run": best_async,
     }
-    colors = {"Best Synchronous Run": "maroon", "Best Asynchronous Run": "forestgreen"}
+    colors = {"Synchronous Run": "#FFD67D", "Asynchronous Run": "#3B8FBF"}
     epochs = []
     train_dict = {}
     val_dict = {}
@@ -44,20 +45,28 @@ def plot_overfitting(dataset, best_sync, best_async):
         "Test Loss": test_dict,
     }
 
+    plt.style.use("seaborn-v0_8-whitegrid")
+    plt.rcParams.update(
+        {
+            "font.family": "Times New Roman",
+        }
+    )
     for loss, d in plot_dict.items():
         for name in name_dict.keys():
-            plt.plot(epochs, d[name], label=name, color=colors[name])
-        plt.grid()
-        plt.xlabel("Epochs", fontsize=20)
-        plt.ylabel(loss, fontsize=20)
-        plt.legend(fontsize=18)
-        plt.xticks(size=18)
-        plt.yticks(size=18)
+            plt.plot(epochs, d[name], label=name, color=colors[name], linewidth=4)
+        if loss == "Validation Loss":
+            plt.xlabel("Epochs", fontsize=22)
+            plt.legend(
+                fontsize=22, loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=2
+            )
+        plt.ylabel(loss, fontsize=22)
+        plt.xticks(size=20)
+        plt.yticks(size=20)
         # plt.title(
         #    dataset + ": " + loss + ", Best Synchronous vs. Best Asynchronous Run"
         # )
         plt.savefig(
-            PLOT_FOLDER_PE + "/" + dataset + "_" + loss,
+            PLOT_FOLDER_FINAL + "/" + dataset + "_" + loss + ".pdf",
             bbox_inches="tight",
             dpi=300,
         )

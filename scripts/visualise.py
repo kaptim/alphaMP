@@ -472,6 +472,12 @@ def plot_depth_advantage(dataset, cfgs):
         sync_mean.append(np.mean(sync_cfg_data))
         sync_std.append(np.std(sync_cfg_data))
 
+    plt.style.use("seaborn-v0_8-whitegrid")
+    plt.rcParams.update(
+        {
+            "font.family": "Times New Roman",
+        }
+    )
     xs = np.arange(len(cfgs))
     plt.bar(
         xs - 0.2,
@@ -482,7 +488,7 @@ def plot_depth_advantage(dataset, cfgs):
         capsize=5,
         error_kw={"elinewidth": 3, "capthick": 3},
         ecolor="black",
-        color="forestgreen",
+        color="#3B8FBF",
     )
     plt.bar(
         xs + 0.2,
@@ -493,9 +499,9 @@ def plot_depth_advantage(dataset, cfgs):
         capsize=5,
         error_kw={"elinewidth": 3, "capthick": 3},
         ecolor="black",
-        color="maroon",
+        color="#FFD67D",
     )
-    plt.ylabel(dataset_data["metric_best"].iloc[0].upper(), fontsize=14)
+    # plt.ylabel("Mean Performance", fontsize=20)
     ticks = [
         cfg.split("_")[6][:-2]
         + " layers,\n"
@@ -505,12 +511,12 @@ def plot_depth_advantage(dataset, cfgs):
         + " inner dim."
         for cfg in cfgs
     ]
-    plt.xticks(xs, ticks, size=12)
-    plt.yticks(size=12)
-    plt.ylim(max(0, min(async_mean) - 2), 1.1 * max(async_mean))
-    plt.legend(fontsize=12)
+    plt.xticks(xs, ticks, size=20)
+    plt.yticks(size=18)
+    plt.ylim(max(0, min(async_mean) - 2), 1.05 * max(async_mean))
+    plt.legend(fontsize=20, loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=2)
     plt.savefig(
-        PLOT_FOLDER_PE + "/depth_" + dataset,
+        PLOT_FOLDER_FINAL + "/depth_" + dataset + ".pdf",
         bbox_inches="tight",
         dpi=300,
     )
@@ -535,7 +541,7 @@ def plot_depth_advantage_voc():
     plot_depth_advantage("PASCAL-VOC", cfgs)
 
 
-def plot_depth_advantage_voc():
+def plot_depth_advantage_pattern():
     cfgs = [
         "centrality_0.0_T_F_0.001_100_4.0_64_0.0",
         "centrality_0.0_T_F_0.001_100_6.0_64_0.0",
@@ -591,6 +597,13 @@ def plot_metric_ablations():
     metrics = ["ap", "centrality", "cc", "dc", "dcr", "le", "nhc", "nhe"]
     strs = ["_NOPE_1.0_a_a_" + m + "_0.2_" for m in metrics]
 
+    plt.style.use("seaborn-v0_8-whitegrid")
+    plt.rcParams.update(
+        {
+            "font.family": "Times New Roman",
+        }
+    )
+
     for dataset in datasets:
         means = {"T": [], "F": []}
         stds = {"T": [], "F": []}
@@ -640,7 +653,7 @@ def plot_metric_ablations():
         )
         plt.legend(fontsize=12)
         plt.savefig(
-            PLOT_FOLDER_PE + "/ablation_" + dataset,
+            PLOT_FOLDER_FINAL + "/ablation_" + dataset + ".pdf",
             bbox_inches="tight",
             dpi=300,
         )
