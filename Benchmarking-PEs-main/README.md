@@ -57,6 +57,8 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 # GIN
 # GINE
 
+# configs/GT/2_MPNN/GINE/cluster/cluster-GINE-noPE.yaml
+
 # configs/GT/2_MPNN/GatedGCN/cifar10/cifar10-GatedGCN-noPE.yaml
 # configs/GT/2_MPNN/GatedGCN/cluster/cluster-GatedGCN-noPE.yaml
 

@@ -798,7 +798,7 @@ def get_all_results():
         "COCO": "6.0_120",
     }
 
-    # if it is among the keys, keep two best lists:
+    # if it is among the keys in parameters_in_budget, keep two best lists:
     # best and "best in budget" (may be the same)
     if len(unique_settings) != len(raw_data_arr_list.keys()):
         # pick the best setting and only keep those values
