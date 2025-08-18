@@ -15,6 +15,8 @@ PLOT_FOLDER_FINAL = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "plots\\final"
 )
 DATA_FOLDER = os.path.join(os.path.dirname(__file__), "plot_data")
+ASYNC_COLOR = "#3B8FBF"
+SYNC_COLOR = "#FFD67D"
 
 
 def get_data_csv_path(pe=False):
@@ -488,7 +490,7 @@ def plot_depth_advantage(dataset, cfgs):
         capsize=5,
         error_kw={"elinewidth": 3, "capthick": 3},
         ecolor="black",
-        color="#3B8FBF",
+        color=ASYNC_COLOR,
     )
     plt.bar(
         xs + 0.2,
@@ -499,7 +501,7 @@ def plot_depth_advantage(dataset, cfgs):
         capsize=5,
         error_kw={"elinewidth": 3, "capthick": 3},
         ecolor="black",
-        color="#FFD67D",
+        color=SYNC_COLOR,
     )
     # plt.ylabel("Mean Performance", fontsize=20)
     ticks = [
@@ -548,6 +550,100 @@ def plot_depth_advantage_pattern():
         "centrality_0.0_T_F_0.001_200_10.0_64_0.0",
     ]
     plot_depth_advantage("PATTERN", cfgs)
+
+
+def plot_alpha_ablations():
+    raw_data = preprocess_pe()
+
+    datasets = ["CLUSTER", "PASCAL-VOC"]
+
+    dataset_data = raw_data[
+        (raw_data["dataset"].isin(datasets)) & (raw_data["PE"] == "NOPE")
+    ]
+    dataset_arr_list = {
+        "_".join([get_str_key_pe(k) for k in key]): group["best/metric"].to_numpy()
+        for key, group in dataset_data.groupby(
+            by=[
+                "model",
+                "dataset",
+                "PE",
+                "async_update.alpha",
+                "async_update.alpha_node_flag",
+                "async_update.alpha_edge_flag",
+                "async_update.metric",
+                "async_update.metric_range",
+                "async_update.metric_pos",
+                "async_update.use_coloring",
+                "optim.base_lr",
+                "optim.max_epoch",
+                "layers",
+                "gnn.dim_inner",
+                "dropout",
+            ]
+        )
+    }
+
+    # eliminate runs with less than three repetitions
+    dataset_arr_list = {
+        k: v for k, v in dataset_arr_list.items() if dataset_arr_list[k].shape[0] > 2
+    }
+
+    # only consider certain setups
+    ablations = {}
+    ablations["CLUSTER"] = [
+        dataset_arr_list[k] * 100
+        for k in list(dataset_arr_list.keys())
+        if "_".join(k.split("_")[4:]) == "a_a_centrality_0.0_T_F_0.001_100_16.0_48_0.0"
+    ]
+
+    ablations["PASCAL-VOC"] = [
+        dataset_arr_list[k] * 100
+        for k in list(dataset_arr_list.keys())
+        if "_".join(k.split("_")[4:]) == "a_a_centrality_0.0_T_F_0.001_200_14.0_80_0.2"
+    ]
+
+    plt.style.use("seaborn-v0_8-whitegrid")
+    plt.rcParams.update(
+        {
+            "font.family": "Times New Roman",
+        }
+    )
+
+    strs = ["0.5", "0.7", "0.8", "0.9", "0.925", "0.95", "0.975", "1.0"]
+
+    for dataset in datasets:
+        means = [np.mean(v) for v in ablations[dataset]]
+        stds = [np.std(v) for v in ablations[dataset]]
+
+        xs = np.arange(len(strs))
+        plt.bar(
+            xs[:-1],
+            means[:-1],
+            yerr=stds[:-1],
+            width=0.4,
+            capsize=5,
+            error_kw={"elinewidth": 3, "capthick": 3},
+            ecolor="black",
+            color=ASYNC_COLOR,
+        )
+        plt.bar(
+            xs[-1],
+            means[-1],
+            yerr=stds[-1],
+            width=0.4,
+            capsize=5,
+            error_kw={"elinewidth": 3, "capthick": 3},
+            ecolor="black",
+            color=SYNC_COLOR,
+        )
+        plt.xticks(xs, strs, size=12)
+        plt.xlabel("Alpha")
+        plt.yticks(size=12)
+        plt.ylim(
+            max(0, min(means) - 5),
+            1.1 * max(means),
+        )
+        plt.ylabel("Mean performance")
 
 
 def plot_metric_ablations():
@@ -622,7 +718,7 @@ def plot_metric_ablations():
             capsize=5,
             error_kw={"elinewidth": 3, "capthick": 3},
             ecolor="black",
-            color="forestgreen",
+            color=ASYNC_COLOR,
         )
         plt.bar(
             xs + 0.2,
@@ -633,7 +729,7 @@ def plot_metric_ablations():
             capsize=5,
             error_kw={"elinewidth": 3, "capthick": 3},
             ecolor="black",
-            color="maroon",
+            color=SYNC_COLOR,
         )
         plt.ylabel(
             dataset_data[dataset_data["dataset"] == dataset]["metric_best"]
@@ -653,7 +749,7 @@ def plot_metric_ablations():
         )
         plt.legend(fontsize=12)
         plt.savefig(
-            PLOT_FOLDER_FINAL + "/ablation_" + dataset + ".pdf",
+            PLOT_FOLDER_FINAL + "/ablation_metric_" + dataset + ".pdf",
             bbox_inches="tight",
             dpi=300,
         )

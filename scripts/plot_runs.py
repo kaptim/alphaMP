@@ -1,12 +1,8 @@
 import wandb
 import matplotlib.pyplot as plt
-import os
+from visualise import PLOT_FOLDER_FINAL, SYNC_COLOR, ASYNC_COLOR
 
 PROJECT = "tkrappel-eth-zurich/async_pe"
-PLOT_FOLDER_PE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plots\\pe")
-PLOT_FOLDER_FINAL = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "plots\\final"
-)
 
 
 def get_wandb_run(run_id):
@@ -24,7 +20,7 @@ def plot_overfitting(dataset, best_sync, best_async):
         "Synchronous Run": best_sync,
         "Asynchronous Run": best_async,
     }
-    colors = {"Synchronous Run": "#FFD67D", "Asynchronous Run": "#3B8FBF"}
+    colors = {"Synchronous Run": SYNC_COLOR, "Asynchronous Run": ASYNC_COLOR}
     epochs = []
     train_dict = {}
     val_dict = {}
