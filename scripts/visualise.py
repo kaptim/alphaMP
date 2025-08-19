@@ -620,6 +620,7 @@ def plot_alpha_ablations():
             xs[:-1],
             means[:-1],
             yerr=stds[:-1],
+            label="Asynchronous Run",
             width=0.4,
             capsize=5,
             error_kw={"elinewidth": 3, "capthick": 3},
@@ -630,20 +631,31 @@ def plot_alpha_ablations():
             xs[-1],
             means[-1],
             yerr=stds[-1],
+            label="Synchronous Run",
             width=0.4,
             capsize=5,
             error_kw={"elinewidth": 3, "capthick": 3},
             ecolor="black",
             color=SYNC_COLOR,
         )
-        plt.xticks(xs, strs, size=12)
-        plt.xlabel("Alpha")
-        plt.yticks(size=12)
+        plt.xticks(xs, strs, size=18)
+        plt.yticks(size=18)
         plt.ylim(
             max(0, min(means) - 5),
             1.1 * max(means),
         )
-        plt.ylabel("Mean performance")
+        if dataset == datasets[0]:
+            plt.ylabel("Mean Performance", size=20)
+            plt.xlabel("Alpha", size=20)
+            plt.legend(
+                fontsize=20, loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=2
+            )
+        plt.savefig(
+            PLOT_FOLDER_FINAL + "/ablation_alpha_" + dataset + ".pdf",
+            bbox_inches="tight",
+            dpi=300,
+        )
+        plt.close()
 
 
 def plot_metric_ablations():
@@ -713,7 +725,7 @@ def plot_metric_ablations():
             xs - 0.2,
             means["T"],
             yerr=stds["T"],
-            label="Positive correlation",
+            label="Positive Correlation",
             width=0.4,
             capsize=5,
             error_kw={"elinewidth": 3, "capthick": 3},
@@ -724,30 +736,29 @@ def plot_metric_ablations():
             xs + 0.2,
             means["F"],
             yerr=stds["F"],
-            label="Negative correlation",
+            label="Negative Correlation",
             width=0.4,
             capsize=5,
             error_kw={"elinewidth": 3, "capthick": 3},
             ecolor="black",
             color=SYNC_COLOR,
         )
-        plt.ylabel(
-            dataset_data[dataset_data["dataset"] == dataset]["metric_best"]
-            .iloc[0]
-            .upper(),
-            fontsize=14,
-        )
         ticks = [
             ("bc" if s.split("_")[-3] == "centrality" else s.split("_")[-3])
             for s in strs
         ]
-        plt.xticks(xs, ticks, size=12)
-        plt.yticks(size=12)
+        plt.xticks(xs, ticks, size=18)
+        plt.yticks(size=18)
         plt.ylim(
             max(0, min(min(means["T"]), min(means["F"])) - 5),
             1.1 * max(max(means["T"]), max(means["F"])),
         )
-        plt.legend(fontsize=12)
+        if dataset == datasets[0]:
+            plt.ylabel("Mean Performance", size=20)
+            plt.xlabel("Metric", size=20)
+            plt.legend(
+                fontsize=20, loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=2
+            )
         plt.savefig(
             PLOT_FOLDER_FINAL + "/ablation_metric_" + dataset + ".pdf",
             bbox_inches="tight",

@@ -17,8 +17,8 @@ def plot_overfitting(dataset, best_sync, best_async):
     # need to ensure that epochs match
 
     name_dict = {
-        "Synchronous Run": best_sync,
         "Asynchronous Run": best_async,
+        "Synchronous Run": best_sync,
     }
     colors = {"Synchronous Run": SYNC_COLOR, "Asynchronous Run": ASYNC_COLOR}
     epochs = []
