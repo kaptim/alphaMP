@@ -40,4 +40,4 @@ python main.py --cfg configs/GT/2_MPNN/GatedGCN/zinc/zinc-GatedGCN-noPE.yaml acc
 
 - Configurations are available under `configs/GT/2_MPNN/GatedGCN/dataset/dataset-GatedGCN-yy.yaml` where
 dataset is the name of the dataset and yy is your positional encoding
-  - The possible options for asynchronous message passing grouped under "async_update" in each config
+  - The possible options for asynchronous message passing are grouped under "async_update" in each config
