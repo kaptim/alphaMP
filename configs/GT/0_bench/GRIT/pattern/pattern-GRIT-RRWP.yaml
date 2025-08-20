@@ -9,7 +9,7 @@ wandb:
   name: pattern-GRIT-RRWP
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets/PATTERN
+  dir: ./datasets
   pe_transform_on_the_fly: True
   format: PyG-GNNBenchmarkDataset
   name: PATTERN

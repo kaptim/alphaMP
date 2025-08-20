@@ -7,7 +7,7 @@ wandb:
   name: "COCO-GIN-noPE"
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets
+  dir: ./datasets
   format: PyG-COCOSuperpixels
   name: edge_wt_region_boundary
   slic_compactness: 30

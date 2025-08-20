@@ -12,7 +12,7 @@ wandb:
   name: peptides-struct-GRIT-RRWP
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets/LRGBDataset
+  dir: ./datasets
   pe_transform_on_the_fly: True
   format: OGB
   name: peptides-structural

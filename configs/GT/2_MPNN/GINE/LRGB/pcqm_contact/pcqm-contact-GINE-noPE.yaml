@@ -12,7 +12,7 @@ wandb:
   name: "pcqm4m-contact-GINE-noPE"
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets
+  dir: ./datasets
   format: OGB
   name: PCQM4Mv2Contact-shuffle
   task: graph  # PCQM4Mv2Contact is edge-level task, but because it is inductive, set to 'graph'

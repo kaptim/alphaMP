@@ -12,7 +12,7 @@ wandb:
   name: "peptides-func-GIN-noPE"
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets
+  dir: ./datasets
   format: OGB
   name: peptides-functional
   task: graph

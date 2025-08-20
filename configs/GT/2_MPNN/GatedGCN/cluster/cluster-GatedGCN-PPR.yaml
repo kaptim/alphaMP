@@ -14,7 +14,7 @@ wandb:
   name: "CLUSTER-GatedGCN-PPR"
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets
+  dir: ./datasets
   pe_transform_on_the_fly: False # compute PE on the fly to save memory when launching many experiments in parallel
   format: PyG-GNNBenchmarkDataset
   name: CLUSTER

@@ -9,7 +9,7 @@ wandb:
   name: pattern-GRIT-noPE
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets/PATTERN
+  dir: ./datasets
   format: PyG-GNNBenchmarkDataset
   name: PATTERN
   task: graph

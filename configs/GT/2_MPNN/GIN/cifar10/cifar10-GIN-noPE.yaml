@@ -14,7 +14,7 @@ wandb:
   name: "CIFAR10-GIN-noPE"
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets
+  dir: ./datasets
   format: PyG-GNNBenchmarkDataset
   name: CIFAR10
   task: graph

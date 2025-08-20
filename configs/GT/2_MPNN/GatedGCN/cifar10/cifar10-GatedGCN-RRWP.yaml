@@ -14,7 +14,7 @@ wandb:
   name: "CIFAR10-GatedGCN-RRWP"
   entity: tkrappel-eth-zurich
 dataset:
-  dir: ../datasets
+  dir: ./datasets
   pe_transform_on_the_fly: True
   format: PyG-GNNBenchmarkDataset
   name: CIFAR10
