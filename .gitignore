@@ -1,18 +1,15 @@
 ### Custom Directories ###
-alphagnn/tests
 logs*
 wandb*
-GRIT-main
-Benchmarking-PEs-main/results
-scripts/plot_data
+results
+plot_scripts
+num_parameters.csv
 plots
 datasets
 test
 cache
 outputs
 tmp
-node_classification/data
-node_classification/models
 graphgps.bak
 
 ### CUDA ###
