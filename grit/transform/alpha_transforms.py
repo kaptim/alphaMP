@@ -1,8 +1,11 @@
 import json
+import csv
 import os
+import numpy as np
 import time
 import torch
 import networkx as nx
+import networkx.algorithms.graph_hashing as nxgh
 from torch_geometric.utils import to_networkx
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
@@ -11,9 +14,11 @@ from torch_geometric.transforms import BaseTransform
 class NetworkAnalysis(BaseTransform):
     # used as pre_transform
 
-    def __init__(self, dataset_dir):
+    def __init__(self, dataset_dir, num_rounds=0, alpha=0.5):
         super().__init__()
         self.dataset_dir = dataset_dir
+        self.num_rounds = num_rounds
+        self.alpha = alpha
 
     def __call__(self, data: Data) -> Data:
         g = to_networkx(data, to_undirected=True)
@@ -40,7 +45,75 @@ class NetworkAnalysis(BaseTransform):
             "articulation_points": ap - nh,
         }
         self.save_runtime(runtime_dict)
+        if self.num_rounds > 0:
+            # enable if you want to empirically measure the expressiveness
+            self.simulate_1wl(g)
         return data
+
+    def save_simulation(self, sync_result, async_results):
+        sim_dir = "/".join([self.dataset_dir, "simulation"])
+        sim_f = "/".join(
+            [
+                sim_dir,
+                str(self.alpha) + "_" + str(self.num_rounds) + ".csv",
+            ]
+        )
+        if not os.path.exists(sim_dir):
+            os.mkdir(sim_dir)
+        results = [int(sync_result is True), sum(async_results) / len(async_results)]
+        if os.path.exists(sim_f):
+            with open(sim_f, "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(results)
+        else:
+            with open(sim_f, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Synchronous", "Asynchronous"])
+                writer.writerow(results)
+
+    def simulate_1wl_sync(self, g):
+        # run synchronous updates for the same number of times as asynchronous
+        hashes = nx.weisfeiler_lehman_subgraph_hashes(g, iterations=self.num_rounds)
+        final_hashes = [hashes[k][-1] for k in hashes.keys()]
+        # unique ID for every node?
+        return len(set(final_hashes)) == g.number_of_nodes()
+
+    def simulate_1wl_async(self, g):
+        # initial node attributes: degree of the nodes
+        node_attr_name = "wl"
+        nx.set_node_attributes(g, nxgh._init_node_labels(g, None, None), node_attr_name)
+
+        for i in range(self.num_rounds):
+            sync_update = nx.weisfeiler_lehman_subgraph_hashes(
+                g, node_attr=node_attr_name, iterations=1
+            )
+            async_update = {}
+            alphas = np.random.choice(
+                [0, 1], g.number_of_nodes(), p=[1 - self.alpha, self.alpha]
+            )
+            for node in g.nodes():
+                async_update[node] = (1 - alphas[node]) * g.nodes()[node][
+                    node_attr_name
+                ] + alphas[node] * sync_update[node][0]
+            nx.set_node_attributes(g, async_update, node_attr_name)
+
+        return (
+            len(set(nx.get_node_attributes(g, node_attr_name).values()))
+            == g.number_of_nodes()
+        )
+
+    def simulate_1wl(self, g):
+        # for each graph do 1 synchronous run (deterministic) and 5 asynchronous ones
+        n_async_runs = 5
+        async_results = []
+        sync_result = self.simulate_1wl_sync(g)
+        for i in range(n_async_runs):
+            async_results.append(
+                self.simulate_1wl_async(
+                    g,
+                )
+            )
+        self.save_simulation(sync_result, async_results)
 
     def save_runtime(self, runtime_dict):
         runtime_f = "/".join([self.dataset_dir, "runtime.json"])

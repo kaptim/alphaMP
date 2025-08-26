@@ -1695,7 +1695,11 @@ def preformat_ZINC(dataset_dir, name):
                 root=dataset_dir,
                 subset=(name == "subset"),
                 split=split,
-                pre_transform=NetworkAnalysis(dataset_dir + "/" + name),
+                pre_transform=NetworkAnalysis(
+                    dataset_dir + "/" + name,
+                    cfg.async_update.sim_rounds,
+                    cfg.async_update.alpha,
+                ),
             )
             for split in ["train", "val", "test"]
         ]

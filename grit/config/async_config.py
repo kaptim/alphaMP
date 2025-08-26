@@ -19,3 +19,8 @@ def set_cfg_posenc(cfg):
     cfg.async_update.alpha_node_flag = "a"  # inference (nodes): a: use alpha values, p: bernoulli (as in training), n: synchronous update
     cfg.async_update.alpha_edge_flag = "a"  # inference (edges): a: average of end nodes, m: maximum alpha of the two end nodes
     cfg.async_update.use_coloring = False
+
+    # simulation of asynchronous 1WL
+    cfg.async_update.sim_rounds = (
+        0  # 0: no simulation, >0: number of rounds (layers) to simulate
+    )
