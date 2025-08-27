@@ -75,6 +75,10 @@ class CustomGNN(torch.nn.Module):
     def forward(self, batch):
         # self.children(): torch function to return an iterator over child
         # modules, i.e., the feature encoder, the layers etc.
+        print("simulation should start here")
+        if self.num_rounds > 0:
+            # enable if you want to empirically measure the expressiveness
+            self.simulate_1wl(g)
         for name, module in self.named_children():
             if name == "gnn_layers":
                 # alpha-asynchronous updates of each layer

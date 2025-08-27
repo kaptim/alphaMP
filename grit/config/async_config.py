@@ -24,3 +24,5 @@ def set_cfg_posenc(cfg):
     cfg.async_update.sim_rounds = (
         0  # 0: no simulation, >0: number of rounds (layers) to simulate
     )
+    # number of repetitions per graph for asynchronous message passing
+    cfg.async_update.async_runs = 5
