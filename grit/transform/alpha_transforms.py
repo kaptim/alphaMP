@@ -11,11 +11,9 @@ from torch_geometric.transforms import BaseTransform
 class NetworkAnalysis(BaseTransform):
     # used as pre_transform
 
-    def __init__(self, dataset_dir, num_rounds=0, alpha=0.5):
+    def __init__(self, dataset_dir):
         super().__init__()
         self.dataset_dir = dataset_dir
-        # self.num_rounds = num_rounds
-        # self.alpha = alpha
 
     def __call__(self, data: Data) -> Data:
         g = to_networkx(data, to_undirected=True)
@@ -42,9 +40,6 @@ class NetworkAnalysis(BaseTransform):
             "articulation_points": ap - nh,
         }
         self.save_runtime(runtime_dict)
-        # if self.num_rounds > 0:
-        # enable if you want to empirically measure the expressiveness
-        # self.simulate_1wl(g)
         return data
 
     def save_runtime(self, runtime_dict):
