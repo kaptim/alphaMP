@@ -1,5 +1,4 @@
 import json
-import os.path as osp
 import torch
 import torch_geometric.graphgym.models.head  # noqa, register module
 import torch_geometric.graphgym.register as register
@@ -10,16 +9,8 @@ from grit.layer.gatedgcn_layer import ResGatedGCNConvLayer
 from grit.layer.gatedgcn_layer import GatedGCNLayer
 from grit.layer.gine_conv_layer import GINEConvLayer
 from grit.layer.gin_layer import GINConvLayer
-
-
-def get_min_max_path(cfg):
-    dataset_dir = cfg.dataset.dir
-    if cfg.dataset.format.startswith("PyG-"):
-        pyg_dataset_id = cfg.dataset.format.split("-", 1)[1]
-        dataset_dir = osp.join(dataset_dir, pyg_dataset_id)
-        if pyg_dataset_id == "GNNBenchmarkDataset":
-            dataset_dir = dataset_dir.replace("/GNNBenchmarkDataset", "")
-    return dataset_dir + "/" + cfg.dataset.name
+from grit.wl_simulation import simulate_1wl
+from grit.utils import get_data_dir
 
 
 @register_network("custom_gnn")
@@ -57,7 +48,7 @@ class CustomGNN(torch.nn.Module):
         # get the min and max values for custom metrics
         if not cfg.dataset.format == "Synthetic":
             # no graph metrics for synthetic datasets
-            with open(get_min_max_path(cfg) + "/min_max.json", "r") as f:
+            with open(get_data_dir(cfg) + "/min_max.json", "r") as f:
                 self.min_max_dict = json.load(f)
 
     def build_conv_model(self, model_type):
@@ -75,10 +66,9 @@ class CustomGNN(torch.nn.Module):
     def forward(self, batch):
         # self.children(): torch function to return an iterator over child
         # modules, i.e., the feature encoder, the layers etc.
-        print("simulation should start here")
-        if self.num_rounds > 0:
+        if cfg.async_update.sim_rounds > 0:
             # enable if you want to empirically measure the expressiveness
-            self.simulate_1wl(g)
+            simulate_1wl(batch, cfg)
         for name, module in self.named_children():
             if name == "gnn_layers":
                 # alpha-asynchronous updates of each layer
