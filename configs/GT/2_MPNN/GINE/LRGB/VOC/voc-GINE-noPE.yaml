@@ -5,7 +5,7 @@ wandb:
   use: True
   project: async_pe
   name: "Pascal-VOC-GINE-noPE"
-  entity: tkrappel-eth-zurich
+  entity: wandb_entity
 dataset:
   dir: ./datasets
   format: PyG-VOCSuperpixels

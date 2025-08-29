@@ -7,7 +7,7 @@ wandb:
   use: True
   project: async_pe
   name: pattern-GRIT-noPE
-  entity: tkrappel-eth-zurich
+  entity: wandb_entity
 dataset:
   dir: ./datasets
   format: PyG-GNNBenchmarkDataset

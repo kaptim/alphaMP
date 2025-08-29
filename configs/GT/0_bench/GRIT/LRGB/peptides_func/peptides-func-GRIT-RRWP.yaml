@@ -10,7 +10,7 @@ wandb:
   use: True
   project: async_pe
   name: peptides-func-GRIT-RRWP
-  entity: tkrappel-eth-zurich
+  entity: wandb_entity
 dataset:
   dir: ./datasets
   format: OGB

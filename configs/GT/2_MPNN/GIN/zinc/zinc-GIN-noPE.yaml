@@ -13,7 +13,7 @@ wandb:
   use: True
   project: async_pe
   name: ZINC-GIN-noPE
-  entity: tkrappel-eth-zurich
+  entity: wandb_entity
 dataset:
   dir: ./datasets
   format: PyG-ZINC

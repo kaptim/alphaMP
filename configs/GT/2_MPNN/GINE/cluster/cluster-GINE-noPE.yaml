@@ -12,7 +12,7 @@ wandb:
   use: True
   project: async_pe
   name: "CLUSTER-GINE-noPE"
-  entity: tkrappel-eth-zurich
+  entity: wandb_entity
 dataset:
   dir: ./datasets
   pe_transform_on_the_fly: False # compute PE on the fly to save memory when launching many experiments in parallel
