@@ -5,7 +5,7 @@ wandb:
   use: True
   project: async_pe
   name: "PATTERN-GatedGCN-noPE"
-  entity: wandb_entity
+  entity: tkrappel-eth-zurich
 dataset:
   dir: ./datasets
   format: PyG-GNNBenchmarkDataset
@@ -37,7 +37,7 @@ async_update:
   metric_range: 0.0
   metric_pos: True
   alpha: 1.0
-  alpha_node_flag: a
+  alpha_node_flag: p
   alpha_edge_flag: a
   use_coloring: False
 model:
