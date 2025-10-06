@@ -116,12 +116,14 @@ def eval_epoch(logger, loader, model, split="val"):
         # forward pass of the model modifies batch in place so we need
         # to copy it for multiple inference runs
         batch_x_orig = batch.x.detach().clone()
+        edge_attr_used = False
         if batch.edge_attr is not None:
             batch_edge_attr_orig = batch.edge_attr.detach().clone()
+            edge_attr_used = True
         for i in range(cfg.async_update.num_inference_runs):
             if i > 0:
                 batch.x = batch_x_orig
-                if batch.edge_attr is not None:
+                if edge_attr_used:
                     batch.edge_attr = batch_edge_attr_orig
             if cfg.gnn.head == "inductive_edge":
                 pred, true, extra_stats = model(batch)
