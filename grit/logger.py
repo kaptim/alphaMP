@@ -54,6 +54,8 @@ class CustomLogger(Logger):
         super().__init__(*args, **kwargs)
         # Whether to run comparison tests of alternative score implementations.
         self.test_scores = False
+        self._trues = []
+        self._preds = []
 
     # basic properties
     def basic(self):
@@ -68,10 +70,16 @@ class CustomLogger(Logger):
             stats["gpu_memory"] = gpu_memory
         return stats
 
+    # custom reset
+    def reset(self):
+        super().reset()
+        self._trues = []
+        self._preds = []
+
     # task properties
-    def classification_binary(self):
-        true = torch.cat(self._true).squeeze(-1)
-        pred_score = torch.cat(self._pred)
+    def classification_binary(self, idx):
+        true = torch.cat(self._trues[idx]).squeeze(-1)
+        pred_score = torch.cat(self._preds[idx])
         pred_int = self._get_pred_int(pred_score)
 
         if (
@@ -108,8 +116,8 @@ class CustomLogger(Logger):
             res["accuracy-SBM"] = reformat(accuracy_SBM(true, pred_int))
         return res
 
-    def classification_multi(self):
-        true, pred_score = torch.cat(self._true), torch.cat(self._pred)
+    def classification_multi(self, idx):
+        true, pred_score = torch.cat(self._trues[idx]), torch.cat(self._preds[idx])
         pred_int = self._get_pred_int(pred_score)
         reformat = lambda x: round(float(x), cfg.round)
 
@@ -143,8 +151,8 @@ class CustomLogger(Logger):
 
         return res
 
-    def classification_multilabel(self):
-        true, pred_score = torch.cat(self._true), torch.cat(self._pred)
+    def classification_multilabel(self, idx):
+        true, pred_score = torch.cat(self._trues[idx]), torch.cat(self._preds[idx])
         reformat = lambda x: round(float(x), cfg.round)
 
         # MetricWrapper will remove NaNs and apply the metric to each target dim
@@ -194,14 +202,14 @@ class CustomLogger(Logger):
 
         return results
 
-    def subtoken_prediction(self):
+    def subtoken_prediction(self, idx):
         from ogb.graphproppred import Evaluator
 
         evaluator = Evaluator("ogbg-code2")
 
         seq_ref_list = []
         seq_pred_list = []
-        for seq_pred, seq_ref in zip(self._pred, self._true):
+        for seq_pred, seq_ref in zip(self._preds[idx], self._trues[idx]):
             seq_ref_list.extend(seq_ref)
             seq_pred_list.extend(seq_pred)
 
@@ -211,8 +219,8 @@ class CustomLogger(Logger):
         del result["F1"]
         return result
 
-    def regression(self):
-        true, pred = torch.cat(self._true), torch.cat(self._pred)
+    def regression(self, idx):
+        true, pred = torch.cat(self._trues[idx]), torch.cat(self._preds[idx])
         reformat = lambda x: round(float(x), cfg.round)
         return {
             "mae": reformat(mean_absolute_error(true, pred)),
@@ -225,7 +233,16 @@ class CustomLogger(Logger):
         }
 
     def update_stats(
-        self, true, pred, loss, lr, time_used, params, dataset_name=None, **kwargs
+        self,
+        true,
+        pred,
+        loss,
+        lr,
+        time_used,
+        params,
+        dataset_name=None,
+        idx=0,
+        **kwargs,
     ):
         if dataset_name == "ogbg-code2":
             assert true["y_arr"].shape[1] == len(pred)  # max_seq_len (5)
@@ -249,8 +266,11 @@ class CustomLogger(Logger):
             assert true.shape[0] == pred.shape[0]
             batch_size = true.shape[0]
         self._iter += 1
-        self._true.append(true)
-        self._pred.append(pred)
+        if idx + 1 > len(self._trues):
+            self._trues.append([])
+            self._preds.append([])
+        self._trues[idx].append(true)
+        self._preds[idx].append(pred)
         self._size_current += batch_size
         self._loss += loss * batch_size
         self._lr = lr
@@ -263,22 +283,35 @@ class CustomLogger(Logger):
             else:
                 self._custom_stats[key] += val * batch_size
 
+    def aggregate_task_stats(self):
+        task_stats_runs = []
+        for idx in range(len(self._trues)):
+            if self.task_type == "regression":
+                task_stats_runs.append(self.regression(idx))
+            elif self.task_type == "classification_binary":
+                task_stats_runs.append(self.classification_binary(idx))
+            elif self.task_type == "classification_multi":
+                task_stats_runs.append(self.classification_multi(idx))
+            elif self.task_type == "classification_multilabel":
+                task_stats_runs.append(self.classification_multilabel(idx))
+            elif self.task_type == "subtoken_prediction":
+                task_stats_runs.append(self.subtoken_prediction(idx))
+            else:
+                raise ValueError("Task has to be regression or classification")
+
+        task_stats_agg = {}
+        for k in task_stats_runs[0].keys():
+            task_stats_agg[k] = [
+                task_stats_runs[i][k] for i in range(len(task_stats_runs))
+            ]
+            task_stats_agg[k] = sum(task_stats_agg[k]) / len(task_stats_agg[k])
+        return task_stats_agg
+
     def write_epoch(self, cur_epoch):
         start_time = time.perf_counter()
         basic_stats = self.basic()
 
-        if self.task_type == "regression":
-            task_stats = self.regression()
-        elif self.task_type == "classification_binary":
-            task_stats = self.classification_binary()
-        elif self.task_type == "classification_multi":
-            task_stats = self.classification_multi()
-        elif self.task_type == "classification_multilabel":
-            task_stats = self.classification_multilabel()
-        elif self.task_type == "subtoken_prediction":
-            task_stats = self.subtoken_prediction()
-        else:
-            raise ValueError("Task has to be regression or classification")
+        task_stats = self.aggregate_task_stats()
 
         epoch_stats = {
             "epoch": cur_epoch,

@@ -113,34 +113,45 @@ def eval_epoch(logger, loader, model, split="val"):
     for batch in loader:
         batch.split = split
         batch.to(torch.device(cfg.device))
-        if cfg.gnn.head == "inductive_edge":
-            pred, true, extra_stats = model(batch)
-        else:
-            pred, true = model(batch)
-            extra_stats = {}
-        if cfg.dataset.name == "ogbg-code2":
-            loss, pred_score = subtoken_cross_entropy(pred, true)
-            _true = true
-            _pred = pred_score
-        elif cfg.dataset.name == "ogbn-arxiv":
-            index_split = loader.dataset.split_idx[split].to(torch.device(cfg.device))
-            loss, pred_score = arxiv_cross_entropy(pred, true, index_split)
-            _true = true[index_split].detach().to("cpu", non_blocking=True)
-            _pred = pred_score.detach().to("cpu", non_blocking=True)
-        else:
-            loss, pred_score = compute_loss(pred, true)
-            _true = true.detach().to("cpu", non_blocking=True)
-            _pred = pred_score.detach().to("cpu", non_blocking=True)
-        logger.update_stats(
-            true=_true,
-            pred=_pred,
-            loss=loss.detach().cpu().item(),
-            lr=0,
-            time_used=time.time() - time_start,
-            params=cfg.params,
-            dataset_name=cfg.dataset.name,
-            **extra_stats,
-        )
+        # forward pass of the model modifies batch in place so we need
+        # to copy it for multiple inference runs
+        batch_x_orig = batch.x.detach().clone()
+        batch_edge_attr_orig = batch.edge_attr.detach().clone()
+        for i in range(cfg.async_update.num_inference_runs):
+            if i > 0:
+                batch.x = batch_x_orig
+                batch.edge_attr = batch_edge_attr_orig
+            if cfg.gnn.head == "inductive_edge":
+                pred, true, extra_stats = model(batch)
+            else:
+                pred, true = model(batch)
+                extra_stats = {}
+            if cfg.dataset.name == "ogbg-code2":
+                loss, pred_score = subtoken_cross_entropy(pred, true)
+                _true = true
+                _pred = pred_score
+            elif cfg.dataset.name == "ogbn-arxiv":
+                index_split = loader.dataset.split_idx[split].to(
+                    torch.device(cfg.device)
+                )
+                loss, pred_score = arxiv_cross_entropy(pred, true, index_split)
+                _true = true[index_split].detach().to("cpu", non_blocking=True)
+                _pred = pred_score.detach().to("cpu", non_blocking=True)
+            else:
+                loss, pred_score = compute_loss(pred, true)
+                _true = true.detach().to("cpu", non_blocking=True)
+                _pred = pred_score.detach().to("cpu", non_blocking=True)
+            logger.update_stats(
+                true=_true,
+                pred=_pred,
+                loss=loss.detach().cpu().item(),
+                lr=0,
+                time_used=time.time() - time_start,
+                params=cfg.params,
+                dataset_name=cfg.dataset.name,
+                idx=i,
+                **extra_stats,
+            )
         time_start = time.time()
 
 
@@ -157,6 +168,11 @@ def custom_train(loggers, loaders, model, optimizer, scheduler):
     """
     # loggers[0].tb_writer.add_graph(model.model)
 
+    if (
+        cfg.async_update.num_inference_runs > 1
+        and cfg.async_update.alpha_node_flag != "p"
+    ):
+        raise ValueError("Trying to repeat inference runs with flag != p")
     start_epoch = 0
     if cfg.train.auto_resume:
         start_epoch = load_ckpt(model, optimizer, scheduler, cfg.train.epoch_resume)
