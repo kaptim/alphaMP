@@ -11,7 +11,7 @@ wandb:
   use: True
   project: async_pe
   name: "peptides-struct-GatedGCN-noPE"
-  entity: wandb_entity
+  entity: tkrappel-eth-zurich
 dataset:
   dir: ./datasets
   format: OGB
