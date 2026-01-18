@@ -5,7 +5,7 @@ wandb:
   use: True
   project: async_pe
   name: "COCO-GatedGCN-noPE"
-  entity: tkrappel-eth-zurich
+  entity: wandb-entity
 dataset:
   dir: ./datasets
   format: PyG-COCOSuperpixels
